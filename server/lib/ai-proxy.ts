@@ -13,11 +13,18 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   'gpt-4o': { input: 0.0025, output: 0.01 },
 };
 
+// 允许使用的模型白名单
+const ALLOWED_MODELS = new Set(Object.keys(MODEL_PRICING));
+
+export function isAllowedModel(model: string): boolean {
+  return ALLOWED_MODELS.has(model);
+}
+
 function getPrice(model: string): { input: number; output: number } {
   return MODEL_PRICING[model] || MODEL_PRICING['gemini-3-flash-preview'];
 }
 
-// 检查并扣减余额
+// 检查并扣减余额（条件更新防止余额变负）
 export async function checkAndDeductBalance(
   userId: number,
   model: string,
@@ -28,8 +35,21 @@ export async function checkAndDeductBalance(
   const price = getPrice(model);
   const cost = (promptTokens / 1000) * price.input + (completionTokens / 1000) * price.output;
 
-  // 扣减余额
-  await execute('UPDATE users SET balance = balance - ? WHERE id = ?', [cost, userId]);
+  // 条件扣减：仅当余额足够时才扣减
+  const result = await execute(
+    'UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?',
+    [cost, userId, cost]
+  );
+
+  if (result.affectedRows === 0) {
+    // 余额不足，仍记录日志但不扣费
+    await execute(
+      'INSERT INTO usage_logs (user_id, model, prompt_tokens, completion_tokens, cost, endpoint) VALUES (?, ?, ?, ?, ?, ?)',
+      [userId, model, promptTokens, completionTokens, 0, endpoint]
+    );
+    const rows = await query<Array<{ balance: string }>>('SELECT balance FROM users WHERE id = ?', [userId]);
+    return { cost: 0, balance: Number(rows[0]?.balance ?? 0) };
+  }
 
   // 记录使用日志
   await execute(
@@ -38,14 +58,14 @@ export async function checkAndDeductBalance(
   );
 
   // 返回最新余额
-  const rows = await query<Array<{ balance: number }>>('SELECT balance FROM users WHERE id = ?', [userId]);
-  return { cost, balance: rows[0]?.balance ?? 0 };
+  const rows = await query<Array<{ balance: string }>>('SELECT balance FROM users WHERE id = ?', [userId]);
+  return { cost, balance: Number(rows[0]?.balance ?? 0) };
 }
 
 // 检查余额是否充足
 export async function checkBalance(userId: number): Promise<number> {
-  const rows = await query<Array<{ balance: number }>>('SELECT balance FROM users WHERE id = ?', [userId]);
-  return rows[0]?.balance ?? 0;
+  const rows = await query<Array<{ balance: string }>>('SELECT balance FROM users WHERE id = ?', [userId]);
+  return Number(rows[0]?.balance ?? 0);
 }
 
 // AI Chat 流式代理

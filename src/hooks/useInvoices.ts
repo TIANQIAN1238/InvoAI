@@ -4,6 +4,7 @@ import type { Invoice } from '@/types/invoice';
 import * as db from '@/lib/db';
 import { copyFileToWorkspace, readFileAsBase64, recognizeInvoice, ensureDir } from '@/lib/ai';
 import type { InvoiceOcrResult } from '@/types/invoice';
+import { hasToken } from '@/lib/api';
 
 const WORKSPACE_DIR = '/tmp/invoice-workspace';
 
@@ -23,6 +24,7 @@ export function useInvoices() {
     dateFrom?: string;
     dateTo?: string;
   }) => {
+    if (!hasToken()) return;
     try {
       setLoading(true);
       const p = params ?? searchParams;

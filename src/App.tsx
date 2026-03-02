@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { useInvoices } from '@/hooks/useInvoices';
@@ -13,7 +13,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 function App() {
-  const { user, loading: authLoading, error: authError, login, register, logout, refreshUser } = useAuth();
+  const { user, loading: authLoading, error: authError, login, register, logout, refreshUser, clearError } = useAuth();
 
   const [settings, setSettings] = useState<AppSettings>(() => {
     try {
@@ -32,6 +32,7 @@ function App() {
     stats,
     uploadInvoice,
     search,
+    loadInvoices,
     removeInvoice,
   } = useInvoices();
 
@@ -40,7 +41,14 @@ function App() {
     isStreaming,
     sendMessage,
     clearMessages,
-  } = useChat();
+  } = useChat({ onStreamDone: refreshUser });
+
+  // 用户登录后加载发票列表
+  useEffect(() => {
+    if (user) {
+      loadInvoices();
+    }
+  }, [user, loadInvoices]);
 
   const updateSettings = useCallback((partial: Partial<AppSettings>) => {
     setSettings(prev => {
@@ -50,9 +58,10 @@ function App() {
     });
   }, []);
 
-  const handleUpload = useCallback(() => {
-    uploadInvoice({ visionModel: settings.visionModel });
-  }, [uploadInvoice, settings]);
+  const handleUpload = useCallback(async () => {
+    await uploadInvoice({ visionModel: settings.visionModel });
+    refreshUser();
+  }, [uploadInvoice, settings, refreshUser]);
 
   const handleSendMessage = useCallback((content: string) => {
     const systemContext = `你是一个发票管理助手。用户当前有 ${stats.count} 张发票，总金额 ${stats.totalAmount} 元。请用中文回答。如果用户询问发票统计相关问题，请基于已知信息回答。`;
@@ -73,7 +82,7 @@ function App() {
 
   // 未登录
   if (!user) {
-    return <LoginPage onLogin={login} onRegister={register} error={authError} />;
+    return <LoginPage onLogin={login} onRegister={register} error={authError} onClearError={clearError} />;
   }
 
   return (

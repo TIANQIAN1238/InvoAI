@@ -18,7 +18,8 @@ export async function GET(request: Request) {
 
   if (search) {
     conditions.push('(invoice_number LIKE ? OR seller_name LIKE ? OR buyer_name LIKE ? OR invoice_code LIKE ?)');
-    const q = `%${search}%`;
+    const escaped = search.replace(/[%_\\]/g, '\\$&');
+    const q = `%${escaped}%`;
     values.push(q, q, q, q);
   }
   if (dateFrom) {

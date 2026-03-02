@@ -1,5 +1,5 @@
 import { getUserFromHeader } from '@/lib/auth';
-import { checkBalance, checkAndDeductBalance, createChatStream } from '@/lib/ai-proxy';
+import { checkBalance, checkAndDeductBalance, createChatStream, isAllowedModel } from '@/lib/ai-proxy';
 import { error, corsResponse, corsHeaders } from '@/lib/response';
 
 export async function OPTIONS() { return corsResponse(); }
@@ -14,9 +14,20 @@ export async function POST(request: Request) {
     return error('余额不足，请充值', 402);
   }
 
-  const { messages, model = 'gpt-4o-mini' } = await request.json();
+  let body: { messages?: unknown; model?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return error('请求格式错误');
+  }
+
+  const { messages, model = 'gemini-3-flash-preview' } = body;
   if (!messages || !Array.isArray(messages)) {
     return error('消息不能为空');
+  }
+
+  if (!isAllowedModel(model)) {
+    return error(`不支持的模型: ${model}`);
   }
 
   try {

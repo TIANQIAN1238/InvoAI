@@ -34,13 +34,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (res.status === 401) {
     clearToken();
-    window.location.reload();
     throw new Error('登录过期，请重新登录');
   }
 
-  const data = await res.json();
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
+    throw new Error('响应格式错误');
+  }
+
   if (!res.ok) {
-    throw new Error(data.error || `请求失败 (${res.status})`);
+    throw new Error((data as { error?: string }).error || `请求失败 (${res.status})`);
   }
   return data as T;
 }
@@ -145,6 +151,11 @@ export function apiChatStream(
     body: JSON.stringify({ messages, model }),
     signal: controller.signal,
   }).then(async (res) => {
+    if (res.status === 401) {
+      clearToken();
+      onError('登录过期，请重新登录');
+      return;
+    }
     if (!res.ok) {
       const data = await res.json().catch(() => ({ error: '请求失败' }));
       onError(data.error || `错误 ${res.status}`);
@@ -182,6 +193,22 @@ export function apiChatStream(
           } catch {
             // skip unparseable
           }
+        }
+      }
+    }
+
+    // 处理 buffer 中残留数据
+    buffer += decoder.decode();
+    if (buffer.trim()) {
+      const line = buffer.trim();
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim();
+        if (data !== '[DONE]') {
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content || '';
+            if (delta) onChunk(delta);
+          } catch { /* skip */ }
         }
       }
     }

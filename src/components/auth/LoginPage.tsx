@@ -5,9 +5,10 @@ interface LoginPageProps {
   onLogin: (email: string, password: string) => Promise<void>;
   onRegister: (email: string, password: string) => Promise<void>;
   error: string | null;
+  onClearError?: () => void;
 }
 
-export function LoginPage({ onLogin, onRegister, error }: LoginPageProps) {
+export function LoginPage({ onLogin, onRegister, error, onClearError }: LoginPageProps) {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -97,7 +98,7 @@ export function LoginPage({ onLogin, onRegister, error }: LoginPageProps) {
           <div className="mt-6 text-center text-sm text-gray-500">
             {isRegister ? '已有账号？' : '没有账号？'}
             <button
-              onClick={() => { setIsRegister(!isRegister); }}
+              onClick={() => { setIsRegister(!isRegister); onClearError?.(); }}
               className="text-[var(--color-primary)] hover:underline ml-1"
             >
               {isRegister ? '去登录' : '注册'}

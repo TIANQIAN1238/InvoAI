@@ -1,9 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ChatMessage } from '@/types/invoice';
 import { apiChatStream } from '@/lib/api';
 import { generateId } from '@/lib/utils';
 
-export function useChat() {
+export function useChat(options?: { onStreamDone?: () => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: generateId(),
@@ -14,13 +14,38 @@ export function useChat() {
   ]);
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const messagesRef = useRef(messages);
+  const isStreamingRef = useRef(isStreaming);
+  const onStreamDoneRef = useRef(options?.onStreamDone);
+
+  // 同步 ref
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    isStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+
+  useEffect(() => {
+    onStreamDoneRef.current = options?.onStreamDone;
+  }, [options?.onStreamDone]);
+
+  // 组件卸载时中止 SSE 连接
+  useEffect(() => {
+    return () => {
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+    };
+  }, []);
 
   const sendMessage = useCallback(async (
     content: string,
     settings: { model: string },
     systemContext?: string,
   ) => {
-    if (!content.trim() || isStreaming) return;
+    if (!content.trim() || isStreamingRef.current) return;
 
     const userMsg: ChatMessage = {
       id: generateId(),
@@ -45,7 +70,8 @@ export function useChat() {
       apiMessages.push({ role: 'system', content: systemContext });
     }
 
-    const recentMessages = [...messages.slice(-10), userMsg];
+    // 使用 ref 获取最新 messages，避免闭包陈旧问题
+    const recentMessages = [...messagesRef.current.slice(-10), userMsg];
     for (const msg of recentMessages) {
       if (msg.role === 'user' || msg.role === 'assistant') {
         apiMessages.push({ role: msg.role, content: msg.content });
@@ -70,6 +96,7 @@ export function useChat() {
       },
       () => {
         setIsStreaming(false);
+        onStreamDoneRef.current?.();
       },
       (err) => {
         setMessages(prev => {
@@ -88,7 +115,7 @@ export function useChat() {
     );
 
     abortRef.current = controller;
-  }, [messages, isStreaming]);
+  }, []);
 
   const clearMessages = useCallback(() => {
     if (abortRef.current) {
@@ -100,6 +127,7 @@ export function useChat() {
       content: '对话已清空，有什么需要帮忙的吗？',
       timestamp: Date.now(),
     }]);
+    setIsStreaming(false);
   }, []);
 
   return {

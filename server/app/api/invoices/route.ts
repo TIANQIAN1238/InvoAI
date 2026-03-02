@@ -19,7 +19,9 @@ export async function GET(request: Request) {
 
   if (search) {
     conditions.push('(invoice_number LIKE ? OR seller_name LIKE ? OR buyer_name LIKE ? OR invoice_code LIKE ?)');
-    const q = `%${search}%`;
+    // 转义 LIKE 通配符
+    const escaped = search.replace(/[%_\\]/g, '\\$&');
+    const q = `%${escaped}%`;
     values.push(q, q, q, q);
   }
   if (dateFrom) {
@@ -32,12 +34,20 @@ export async function GET(request: Request) {
   }
 
   const where = `WHERE ${conditions.join(' AND ')}`;
-  const rows = await query(
+  const rows = await query<Record<string, unknown>[]>(
     `SELECT * FROM invoices ${where} ORDER BY created_at DESC`,
     values
   );
 
-  return json(rows);
+  // 确保 DECIMAL 字段转为数字
+  const result = rows.map(row => ({
+    ...row,
+    amount: Number(row.amount ?? 0),
+    tax_amount: Number(row.tax_amount ?? 0),
+    total_amount: Number(row.total_amount ?? 0),
+  }));
+
+  return json(result);
 }
 
 // 创建发票

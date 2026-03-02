@@ -1,8 +1,11 @@
 import { getUserFromHeader } from '@/lib/auth';
-import { checkBalance, checkAndDeductBalance, recognizeInvoiceAI } from '@/lib/ai-proxy';
+import { checkBalance, checkAndDeductBalance, recognizeInvoiceAI, isAllowedModel } from '@/lib/ai-proxy';
 import { json, error, corsResponse } from '@/lib/response';
 
 export async function OPTIONS() { return corsResponse(); }
+
+// 限制图片大小：20MB base64
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024;
 
 export async function POST(request: Request) {
   const payload = await getUserFromHeader(request);
@@ -13,9 +16,24 @@ export async function POST(request: Request) {
     return error('余额不足，请充值', 402);
   }
 
-  const { image_base64, model = 'gpt-4o' } = await request.json();
+  let body: { image_base64?: string; model?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return error('请求格式错误');
+  }
+
+  const { image_base64, model = 'gemini-3-pro-preview' } = body;
   if (!image_base64) {
     return error('缺少图片数据');
+  }
+
+  if (image_base64.length > MAX_IMAGE_SIZE) {
+    return error('图片过大，请压缩后重试');
+  }
+
+  if (!isAllowedModel(model)) {
+    return error(`不支持的模型: ${model}`);
   }
 
   try {

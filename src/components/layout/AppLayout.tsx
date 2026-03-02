@@ -48,7 +48,7 @@ export function AppLayout({
     <div className="flex flex-col h-screen w-screen">
       <div className="flex-1 min-h-0">
         <PanelGroup orientation="horizontal">
-          <Panel defaultSize="22%" minSize="16%" maxSize="35%">
+          <Panel defaultSize={22} minSize={16} maxSize={35}>
             <Sidebar
               invoices={invoices}
               selectedInvoice={selectedInvoice}
@@ -62,13 +62,13 @@ export function AppLayout({
 
           <PanelResizeHandle />
 
-          <Panel defaultSize="48%" minSize="30%">
+          <Panel defaultSize={48} minSize={30}>
             <PreviewPanel invoice={selectedInvoice} />
           </Panel>
 
           <PanelResizeHandle />
 
-          <Panel defaultSize="30%" minSize="20%" collapsible>
+          <Panel defaultSize={30} minSize={20} collapsible>
             <ChatPanel
               messages={chatMessages}
               isStreaming={isStreaming}

@@ -63,5 +63,7 @@ export function useAuth() {
     }
   }, []);
 
-  return { user, loading, error, login, register, logout, refreshUser };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { user, loading, error, login, register, logout, refreshUser, clearError };
 }

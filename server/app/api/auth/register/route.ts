@@ -11,6 +11,13 @@ export async function POST(request: Request) {
     if (!email || !password) {
       return error('请输入邮箱和密码');
     }
+
+    // 邮箱格式校验
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return error('邮箱格式不正确');
+    }
+
     if (password.length < 6) {
       return error('密码至少6位');
     }

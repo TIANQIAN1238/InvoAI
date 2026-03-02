@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { Bot, Settings, Trash2, X } from 'lucide-react';
 import { ChatInput } from './ChatInput';
 import { MessageList } from './MessageList';
@@ -23,9 +23,17 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const [showSettings, setShowSettings] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScroll = useRef(true);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // 如果用户滚动到距底部 80px 以内，认为在底部
+    shouldAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && shouldAutoScroll.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
@@ -89,7 +97,7 @@ export function ChatPanel({
       )}
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto" onScroll={handleScroll}>
         <MessageList messages={messages} isStreaming={isStreaming} />
       </div>
 

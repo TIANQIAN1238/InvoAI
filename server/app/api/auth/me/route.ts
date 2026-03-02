@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     id: user.id,
     email: user.email,
     displayName: user.display_name,
-    balance: user.balance,
+    balance: Number(user.balance),
     createdAt: user.created_at,
   });
 }
