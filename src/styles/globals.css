@@ -61,17 +61,6 @@ html, body, #root {
   background: #9ca3af;
 }
 
-/* Panel resize handle */
-[data-panel-group-direction="horizontal"] > [data-resize-handle] {
-  width: 1px;
-  background: var(--border);
-  transition: background 0.15s;
-}
-[data-panel-group-direction="horizontal"] > [data-resize-handle]:hover,
-[data-panel-group-direction="horizontal"] > [data-resize-handle][data-resize-handle-active] {
-  background: var(--primary);
-  width: 2px;
-}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);

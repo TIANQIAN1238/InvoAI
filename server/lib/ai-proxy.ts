@@ -89,6 +89,16 @@ export async function createChatStream(
   });
 }
 
+// 根据 base64 内容检测 MIME 类型
+function detectMimeType(base64: string): string {
+  if (base64.startsWith('JVBERi')) return 'application/pdf';
+  if (base64.startsWith('/9j/')) return 'image/jpeg';
+  if (base64.startsWith('iVBORw')) return 'image/png';
+  if (base64.startsWith('Qk')) return 'image/bmp';
+  if (base64.startsWith('UklGR')) return 'image/webp';
+  return 'image/jpeg'; // fallback
+}
+
 // AI 发票识别（非流式）
 export async function recognizeInvoiceAI(
   imageBase64: string,
@@ -117,6 +127,23 @@ export async function recognizeInvoiceAI(
 - 日期格式必须是YYYY-MM-DD
 - 只返回JSON，不要有其他文字`;
 
+  const mimeType = detectMimeType(imageBase64);
+  const dataUrl = `data:${mimeType};base64,${imageBase64}`;
+
+  // 根据模型类型选择不同的请求格式
+  // Gemini 模型使用 inline_data，OpenAI 模型使用 image_url
+  const isGemini = model.startsWith('gemini');
+
+  const userContent = isGemini
+    ? [
+        { type: 'text', text: prompt },
+        { type: 'image_url', image_url: { url: dataUrl } },
+      ]
+    : [
+        { type: 'text', text: prompt },
+        { type: 'image_url', image_url: { url: dataUrl } },
+      ];
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -127,10 +154,7 @@ export async function recognizeInvoiceAI(
       model,
       messages: [{
         role: 'user',
-        content: [
-          { type: 'text', text: prompt },
-          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
-        ],
+        content: userContent,
       }],
       max_tokens: 2048,
     }),

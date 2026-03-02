@@ -21,6 +21,7 @@ pub fn run() {
             commands::invoice::copy_file_to_workspace,
             commands::invoice::read_file_as_base64,
             commands::invoice::ensure_dir,
+            commands::invoice::list_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

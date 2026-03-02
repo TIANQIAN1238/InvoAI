@@ -1,4 +1,4 @@
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
+import { useState, useCallback, useRef } from 'react';
 import { Sidebar } from '@/components/sidebar/Sidebar';
 import { PreviewPanel } from '@/components/preview/PreviewPanel';
 import { ChatPanel } from '@/components/chat/ChatPanel';
@@ -29,6 +29,34 @@ interface AppLayoutProps {
   onRefreshUser: () => void;
 }
 
+function ResizeHandle({ onDrag }: { onDrag: (delta: number) => void }) {
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const handle = e.currentTarget as HTMLElement;
+    handle.setAttribute('data-dragging', 'true');
+
+    const onMouseMove = (ev: MouseEvent) => {
+      onDrag(ev.clientX - startX);
+      // We don't update startX — parent tracks cumulative via ref
+    };
+    const onMouseUp = () => {
+      handle.removeAttribute('data-dragging');
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [onDrag]);
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      className="w-[3px] shrink-0 cursor-col-resize bg-border hover:bg-primary data-[dragging]:bg-primary transition-colors"
+    />
+  );
+}
+
 export function AppLayout({
   invoices,
   selectedInvoice,
@@ -47,41 +75,132 @@ export function AppLayout({
   user,
   onLogout,
 }: AppLayoutProps) {
+  const [localFile, setLocalFile] = useState<{ path: string; name: string } | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(260);
+  const [chatWidth, setChatWidth] = useState(380);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragStartSidebar = useRef(260);
+  const dragStartChat = useRef(380);
+
+  const handleOpenFile = useCallback((path: string, name: string) => {
+    setLocalFile({ path, name });
+    onSelectInvoice(null as unknown as Invoice);
+  }, [onSelectInvoice]);
+
+  const handleSelectInvoice = useCallback((invoice: Invoice) => {
+    setLocalFile(null);
+    onSelectInvoice(invoice);
+  }, [onSelectInvoice]);
+
+  const handleSidebarDragStart = useCallback(() => {
+    dragStartSidebar.current = sidebarWidth;
+  }, [sidebarWidth]);
+
+  const handleSidebarDrag = useCallback((delta: number) => {
+    // On first move of this drag, snapshot the current width
+    if (dragStartSidebar.current === -1) return;
+    const containerWidth = containerRef.current?.offsetWidth ?? 1200;
+    const minW = 180;
+    const maxW = containerWidth * 0.35;
+    // delta is relative to mousedown position
+    setSidebarWidth(Math.max(minW, Math.min(maxW, dragStartSidebar.current + delta)));
+  }, []);
+
+  const handleChatDrag = useCallback((delta: number) => {
+    if (dragStartChat.current === -1) return;
+    const containerWidth = containerRef.current?.offsetWidth ?? 1200;
+    const minW = 200;
+    const maxW = containerWidth * 0.45;
+    // For chat, dragging left = bigger chat (negative delta = wider)
+    setChatWidth(Math.max(minW, Math.min(maxW, dragStartChat.current - delta)));
+  }, []);
+
+  // Snapshot widths when drag starts
+  const handleSidebarMouseDown = useCallback((e: React.MouseEvent) => {
+    dragStartSidebar.current = sidebarWidth;
+    const startX = e.clientX;
+    const el = e.currentTarget as HTMLElement;
+    el.setAttribute('data-dragging', 'true');
+
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientX - startX;
+      const containerWidth = containerRef.current?.offsetWidth ?? 1200;
+      setSidebarWidth(Math.max(180, Math.min(containerWidth * 0.35, dragStartSidebar.current + delta)));
+    };
+    const onUp = () => {
+      el.removeAttribute('data-dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [sidebarWidth]);
+
+  const handleChatMouseDown = useCallback((e: React.MouseEvent) => {
+    dragStartChat.current = chatWidth;
+    const startX = e.clientX;
+    const el = e.currentTarget as HTMLElement;
+    el.setAttribute('data-dragging', 'true');
+
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientX - startX;
+      const containerWidth = containerRef.current?.offsetWidth ?? 1200;
+      setChatWidth(Math.max(200, Math.min(containerWidth * 0.45, dragStartChat.current - delta)));
+    };
+    const onUp = () => {
+      el.removeAttribute('data-dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [chatWidth]);
+
   return (
     <div className="flex flex-col h-screen w-screen">
-      <div className="flex-1 min-h-0">
-        <PanelGroup orientation="horizontal">
-          <Panel defaultSize={22} minSize={16} maxSize={35}>
-            <Sidebar
-              invoices={invoices}
-              selectedInvoice={selectedInvoice}
-              onSelectInvoice={onSelectInvoice}
-              onUpload={onUpload}
-              onSearch={onSearch}
-              onDelete={onDelete}
-              loading={loading}
-            />
-          </Panel>
+      <div ref={containerRef} className="flex-1 min-h-0 flex">
+        {/* Sidebar */}
+        <div style={{ width: sidebarWidth }} className="shrink-0 h-full overflow-hidden">
+          <Sidebar
+            invoices={invoices}
+            selectedInvoice={selectedInvoice}
+            onSelectInvoice={handleSelectInvoice}
+            onUpload={onUpload}
+            onSearch={onSearch}
+            onDelete={onDelete}
+            loading={loading}
+            onOpenFile={handleOpenFile}
+          />
+        </div>
 
-          <PanelResizeHandle />
+        {/* Resize handle 1 */}
+        <div
+          onMouseDown={handleSidebarMouseDown}
+          className="w-[3px] shrink-0 cursor-col-resize bg-border hover:bg-primary data-[dragging]:bg-primary transition-colors"
+        />
 
-          <Panel defaultSize={48} minSize={30}>
-            <PreviewPanel invoice={selectedInvoice} />
-          </Panel>
+        {/* Preview - takes remaining space */}
+        <div className="flex-1 min-w-0 h-full overflow-hidden">
+          <PreviewPanel invoice={selectedInvoice} localFile={localFile} />
+        </div>
 
-          <PanelResizeHandle />
+        {/* Resize handle 2 */}
+        <div
+          onMouseDown={handleChatMouseDown}
+          className="w-[3px] shrink-0 cursor-col-resize bg-border hover:bg-primary data-[dragging]:bg-primary transition-colors"
+        />
 
-          <Panel defaultSize={30} minSize={20} collapsible>
-            <ChatPanel
-              messages={chatMessages}
-              isStreaming={isStreaming}
-              onSendMessage={onSendMessage}
-              onClearChat={onClearChat}
-              settings={settings}
-              onUpdateSettings={onUpdateSettings}
-            />
-          </Panel>
-        </PanelGroup>
+        {/* Chat */}
+        <div style={{ width: chatWidth }} className="shrink-0 h-full overflow-hidden">
+          <ChatPanel
+            messages={chatMessages}
+            isStreaming={isStreaming}
+            onSendMessage={onSendMessage}
+            onClearChat={onClearChat}
+            settings={settings}
+            onUpdateSettings={onUpdateSettings}
+          />
+        </div>
       </div>
 
       {/* Status bar */}

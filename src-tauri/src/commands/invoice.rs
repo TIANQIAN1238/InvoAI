@@ -40,3 +40,49 @@ pub async fn ensure_dir(dir_path: String) -> Result<(), String> {
     fs::create_dir_all(&dir_path).map_err(|e| format!("Failed to create dir: {}", e))?;
     Ok(())
 }
+
+#[derive(serde::Serialize)]
+pub struct FileEntry {
+    pub name: String,
+    pub path: String,
+    pub is_dir: bool,
+}
+
+#[tauri::command]
+pub async fn list_dir(dir_path: String) -> Result<Vec<FileEntry>, String> {
+    let dir = PathBuf::from(&dir_path);
+    if !dir.exists() || !dir.is_dir() {
+        return Err("Directory does not exist".to_string());
+    }
+
+    let mut entries: Vec<FileEntry> = Vec::new();
+    let read_dir = fs::read_dir(&dir).map_err(|e| format!("Failed to read dir: {}", e))?;
+
+    for entry in read_dir {
+        let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+        let metadata = entry.metadata().map_err(|e| format!("Failed to read metadata: {}", e))?;
+        let name = entry.file_name().to_string_lossy().to_string();
+
+        if name.starts_with('.') {
+            continue;
+        }
+
+        entries.push(FileEntry {
+            name,
+            path: entry.path().to_string_lossy().to_string(),
+            is_dir: metadata.is_dir(),
+        });
+    }
+
+    entries.sort_by(|a, b| {
+        if a.is_dir == b.is_dir {
+            a.name.to_lowercase().cmp(&b.name.to_lowercase())
+        } else if a.is_dir {
+            std::cmp::Ordering::Less
+        } else {
+            std::cmp::Ordering::Greater
+        }
+    });
+
+    Ok(entries)
+}

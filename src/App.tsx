@@ -7,8 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import type { AppSettings } from '@/types/invoice';
 
 const DEFAULT_SETTINGS: AppSettings = {
-  model: 'gemini-3-flash-preview',
-  visionModel: 'gemini-3-pro-preview',
+  model: 'gemini-2.5-flash',
+  visionModel: 'gemini-2.5-flash',
   workspaceDir: '/tmp/invoice-workspace',
 };
 
