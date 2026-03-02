@@ -71,9 +71,9 @@ function App() {
   // 加载中
   if (authLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[var(--color-bg)]">
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
           <span className="text-sm text-gray-500">加载中...</span>
         </div>
       </div>
