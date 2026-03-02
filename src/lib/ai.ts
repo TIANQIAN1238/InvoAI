@@ -1,41 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Channel } from '@tauri-apps/api/core';
+import { apiRecognizeInvoice } from './api';
 
-export interface StreamChunk {
-  content: string;
-  done: boolean;
-}
-
-export async function chatStream(
-  messages: Array<{ role: string; content: string }>,
-  apiKey: string,
-  apiBase: string,
-  model: string,
-  onChunk: Channel<StreamChunk>,
-): Promise<string> {
-  return await invoke<string>('chat_stream', {
-    messages,
-    apiKey,
-    apiBase,
-    model,
-    onChunk,
-  });
-}
-
-export async function recognizeInvoice(
-  imageBase64: string,
-  apiKey: string,
-  apiBase: string,
-  model: string,
-): Promise<string> {
-  return await invoke<string>('recognize_invoice', {
-    imageBase64,
-    apiKey,
-    apiBase,
-    model,
-  });
-}
-
+// Tauri 本地文件操作 — 保持不变
 export async function readFileAsBase64(filePath: string): Promise<string> {
   return await invoke<string>('read_file_as_base64', { filePath });
 }
@@ -52,4 +18,13 @@ export async function copyFileToWorkspace(
 
 export async function ensureDir(dirPath: string): Promise<void> {
   await invoke('ensure_dir', { dirPath });
+}
+
+// AI 发票识别 — 通过后端代理
+export async function recognizeInvoice(
+  imageBase64: string,
+  model: string,
+): Promise<string> {
+  const result = await apiRecognizeInvoice(imageBase64, model);
+  return result.content;
 }

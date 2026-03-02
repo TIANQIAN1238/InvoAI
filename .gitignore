@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Next.js (server 子项目)
+server/.next
+server/node_modules
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

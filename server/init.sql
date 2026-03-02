@@ -1,0 +1,49 @@
+-- 在 TiDB Serverless 中执行此脚本初始化数据库
+-- 或者调用 POST /api/init 自动创建
+
+CREATE DATABASE IF NOT EXISTS invoice_db;
+USE invoice_db;
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    display_name VARCHAR(100) DEFAULT '',
+    balance DECIMAL(10, 4) DEFAULT 5.0000,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS invoices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    invoice_number VARCHAR(50) DEFAULT '',
+    invoice_code VARCHAR(50) DEFAULT '',
+    invoice_date DATE NULL,
+    amount DECIMAL(12, 2) DEFAULT 0,
+    tax_amount DECIMAL(12, 2) DEFAULT 0,
+    total_amount DECIMAL(12, 2) DEFAULT 0,
+    seller_name VARCHAR(255) DEFAULT '',
+    buyer_name VARCHAR(255) DEFAULT '',
+    invoice_type VARCHAR(50) DEFAULT '',
+    file_path TEXT NOT NULL,
+    file_name VARCHAR(255) DEFAULT '',
+    remarks TEXT,
+    raw_ocr_result TEXT,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user (user_id),
+    INDEX idx_date (invoice_date)
+);
+
+CREATE TABLE IF NOT EXISTS usage_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    model VARCHAR(100),
+    prompt_tokens INT DEFAULT 0,
+    completion_tokens INT DEFAULT 0,
+    cost DECIMAL(10, 6) DEFAULT 0,
+    endpoint VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user (user_id)
+);

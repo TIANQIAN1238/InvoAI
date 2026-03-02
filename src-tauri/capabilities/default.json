@@ -19,15 +19,11 @@
     "dialog:allow-save",
     "dialog:allow-message",
     "dialog:allow-ask",
-    "sql:default",
-    "sql:allow-load",
-    "sql:allow-execute",
-    "sql:allow-select",
-    "sql:allow-close",
     {
       "identifier": "http:default",
       "allow": [
-        { "url": "https://api.openai-next.com/**" }
+        { "url": "https://**" },
+        { "url": "http://localhost:**" }
       ]
     },
     "store:default"

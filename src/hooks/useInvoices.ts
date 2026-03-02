@@ -40,8 +40,6 @@ export function useInvoices() {
   }, [searchParams]);
 
   const uploadInvoice = useCallback(async (settings: {
-    apiKey: string;
-    apiBase: string;
     visionModel: string;
   }) => {
     try {
@@ -65,21 +63,16 @@ export function useInvoices() {
         // Copy to workspace
         const destPath = await copyFileToWorkspace(path, WORKSPACE_DIR);
 
-        // Insert into DB
+        // Insert into DB via API
         const id = await db.insertInvoice({
           file_path: destPath,
           file_name: fileName,
         });
 
-        // Auto-recognize with AI
+        // Auto-recognize with AI (through backend proxy)
         try {
           const base64 = await readFileAsBase64(destPath);
-          const ocrResultStr = await recognizeInvoice(
-            base64,
-            settings.apiKey,
-            settings.apiBase,
-            settings.visionModel,
-          );
+          const ocrResultStr = await recognizeInvoice(base64, settings.visionModel);
 
           // Parse OCR result - strip markdown code blocks if present
           let cleanJson = ocrResultStr.trim();

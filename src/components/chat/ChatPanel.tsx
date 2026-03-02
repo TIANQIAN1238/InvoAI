@@ -56,34 +56,14 @@ export function ChatPanel({
         </div>
       </div>
 
-      {/* Settings panel */}
+      {/* Settings panel — 只保留模型选择 */}
       {showSettings && (
         <div className="border-b border-[var(--color-border)] p-3 bg-gray-50 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500">AI 设置</span>
+            <span className="text-xs font-semibold text-gray-500">模型设置</span>
             <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-600">
               <X size={14} />
             </button>
-          </div>
-          <div>
-            <label className="text-xs text-gray-500">API Base URL</label>
-            <input
-              type="text"
-              value={settings.apiBase}
-              onChange={e => onUpdateSettings({ apiBase: e.target.value })}
-              className="w-full mt-0.5 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-[var(--color-primary)]"
-              placeholder="https://api.openai-next.com"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-500">API Key</label>
-            <input
-              type="password"
-              value={settings.apiKey}
-              onChange={e => onUpdateSettings({ apiKey: e.target.value })}
-              className="w-full mt-0.5 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-[var(--color-primary)]"
-              placeholder="sk-..."
-            />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>

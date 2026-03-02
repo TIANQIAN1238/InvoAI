@@ -25,8 +25,4 @@ tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-http = "2"
 tauri-plugin-store = "2"
-tauri-plugin-sql = { version = "2", features = ["mysql"] }
-reqwest = { version = "0.12", features = ["json", "stream"] }
-futures-util = "0.3"
-tokio = { version = "1", features = ["full"] }
 base64 = "0.22"

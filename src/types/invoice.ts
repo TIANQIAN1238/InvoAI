@@ -1,5 +1,6 @@
 export interface Invoice {
   id: number;
+  user_id?: number;
   invoice_number: string;
   invoice_code: string;
   invoice_date: string | null;
@@ -39,10 +40,15 @@ export interface ChatMessage {
 }
 
 export interface AppSettings {
-  apiKey: string;
-  apiBase: string;
   model: string;
   visionModel: string;
-  mysqlUrl: string;
   workspaceDir: string;
+}
+
+export interface User {
+  id: number;
+  email: string;
+  displayName: string;
+  balance: number;
+  createdAt: string;
 }
