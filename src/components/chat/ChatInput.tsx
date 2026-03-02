@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface ChatInputProps {
   onSend: (content: string) => void;
@@ -34,7 +35,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   };
 
   return (
-    <div className="border-t border-[var(--color-border)] p-3">
+    <div className="p-3">
       <div className="flex gap-2 items-end">
         <textarea
           ref={textareaRef}
@@ -45,15 +46,15 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           placeholder={disabled ? 'AI 正在回复...' : '输入消息... (Enter 发送)'}
           disabled={disabled}
           rows={1}
-          className="flex-1 resize-none px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] disabled:opacity-50 disabled:bg-gray-50"
+          className="flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
         />
-        <button
+        <Button
           onClick={handleSend}
           disabled={disabled || !text.trim()}
-          className="p-2 bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary-hover)] disabled:opacity-30 transition-colors shrink-0"
+          size="icon"
         >
           <Send size={16} />
-        </button>
+        </Button>
       </div>
     </div>
   );

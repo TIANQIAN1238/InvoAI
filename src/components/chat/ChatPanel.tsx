@@ -2,6 +2,10 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { Bot, Settings, Trash2, X } from 'lucide-react';
 import { ChatInput } from './ChatInput';
 import { MessageList } from './MessageList';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import type { ChatMessage, AppSettings } from '@/types/invoice';
 
 interface ChatPanelProps {
@@ -28,7 +32,6 @@ export function ChatPanel({
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    // 如果用户滚动到距底部 80px 以内，认为在底部
     shouldAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   }, []);
 
@@ -39,57 +42,59 @@ export function ChatPanel({
   }, [messages]);
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-card">
       {/* Header */}
-      <div className="h-10 flex items-center justify-between px-3 border-b border-[var(--color-border)] shrink-0">
+      <div className="h-10 flex items-center justify-between px-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2">
-          <Bot size={16} className="text-[var(--color-primary)]" />
+          <Bot size={16} className="text-primary" />
           <span className="text-sm font-medium">AI 助手</span>
         </div>
-        <div className="flex items-center gap-1">
-          <button
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon-xs"
             onClick={onClearChat}
-            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
             title="清空对话"
           >
             <Trash2 size={14} />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
             onClick={() => setShowSettings(!showSettings)}
-            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
             title="设置"
           >
             <Settings size={14} />
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Settings panel — 只保留模型选择 */}
+      {/* Settings panel */}
       {showSettings && (
-        <div className="border-b border-[var(--color-border)] p-3 bg-gray-50 space-y-2">
+        <div className="border-b border-border p-3 bg-muted/50 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500">模型设置</span>
-            <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-600">
+            <span className="text-xs font-semibold text-muted-foreground">模型设置</span>
+            <Button variant="ghost" size="icon-xs" onClick={() => setShowSettings(false)}>
               <X size={14} />
-            </button>
+            </Button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs text-gray-500">对话模型</label>
-              <input
+            <div className="space-y-1">
+              <Label className="text-xs">对话模型</Label>
+              <Input
                 type="text"
                 value={settings.model}
                 onChange={e => onUpdateSettings({ model: e.target.value })}
-                className="w-full mt-0.5 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-[var(--color-primary)]"
+                className="h-7 text-xs"
               />
             </div>
-            <div>
-              <label className="text-xs text-gray-500">视觉模型</label>
-              <input
+            <div className="space-y-1">
+              <Label className="text-xs">视觉模型</Label>
+              <Input
                 type="text"
                 value={settings.visionModel}
                 onChange={e => onUpdateSettings({ visionModel: e.target.value })}
-                className="w-full mt-0.5 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-[var(--color-primary)]"
+                className="h-7 text-xs"
               />
             </div>
           </div>
@@ -100,6 +105,8 @@ export function ChatPanel({
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto" onScroll={handleScroll}>
         <MessageList messages={messages} isStreaming={isStreaming} />
       </div>
+
+      <Separator />
 
       {/* Input */}
       <ChatInput onSend={onSendMessage} disabled={isStreaming} />

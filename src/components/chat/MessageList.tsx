@@ -20,12 +20,12 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
             {/* Avatar */}
             <div className={cn(
               'w-7 h-7 rounded-full flex items-center justify-center shrink-0',
-              isUser ? 'bg-[var(--color-primary)]' : 'bg-gray-100'
+              isUser ? 'bg-primary' : 'bg-muted'
             )}>
               {isUser ? (
-                <User size={14} className="text-white" />
+                <User size={14} className="text-primary-foreground" />
               ) : (
-                <Bot size={14} className="text-[var(--color-primary)]" />
+                <Bot size={14} className="text-primary" />
               )}
             </div>
 
@@ -33,8 +33,8 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
             <div className={cn(
               'max-w-[85%] px-3 py-2 rounded-lg text-sm leading-relaxed',
               isUser
-                ? 'bg-[var(--color-primary)] text-white rounded-tr-sm'
-                : 'bg-gray-100 text-[var(--color-text)] rounded-tl-sm'
+                ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                : 'bg-muted text-foreground rounded-tl-sm'
             )}>
               <div className="whitespace-pre-wrap break-words">
                 {msg.content}

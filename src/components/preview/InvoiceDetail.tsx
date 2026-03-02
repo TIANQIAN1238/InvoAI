@@ -1,5 +1,6 @@
 import type { Invoice } from '@/types/invoice';
 import { formatCurrency } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 interface InvoiceDetailProps {
   invoice: Invoice;
@@ -20,10 +21,11 @@ const fields: Array<{ key: keyof Invoice; label: string; format?: (v: unknown) =
 
 export function InvoiceDetail({ invoice }: InvoiceDetailProps) {
   return (
-    <div className="p-3 bg-white max-h-48 overflow-y-auto">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+    <div className="p-3 bg-card max-h-48 overflow-y-auto">
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
         发票信息
       </h3>
+      <Separator className="mb-2" />
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
         {fields.map(({ key, label, format }) => {
           const value = invoice[key];
@@ -31,7 +33,7 @@ export function InvoiceDetail({ invoice }: InvoiceDetailProps) {
           const display = format ? format(value) : String(value);
           return (
             <div key={key} className="flex items-baseline gap-1.5">
-              <span className="text-xs text-gray-400 shrink-0">{label}</span>
+              <span className="text-xs text-muted-foreground shrink-0">{label}</span>
               <span className="text-xs font-medium truncate">{display}</span>
             </div>
           );

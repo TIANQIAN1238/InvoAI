@@ -5,6 +5,9 @@ import { ChatPanel } from '@/components/chat/ChatPanel';
 import type { Invoice, AppSettings, ChatMessage, User } from '@/types/invoice';
 import { formatCurrency } from '@/lib/utils';
 import { LogOut, Wallet } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 interface AppLayoutProps {
   invoices: Invoice[];
@@ -82,31 +85,36 @@ export function AppLayout({
       </div>
 
       {/* Status bar */}
-      <div className="h-7 bg-[#f0f0f0] border-t border-[var(--color-border)] flex items-center justify-between px-4 text-xs text-[var(--color-text-secondary)] shrink-0">
-        <div className="flex items-center">
-          <span>共 {stats.count} 张发票</span>
-          <span className="mx-3">|</span>
-          <span>总金额: {formatCurrency(stats.totalAmount)}</span>
+      <div className="h-7 bg-muted border-t border-border flex items-center justify-between px-4 text-xs text-muted-foreground shrink-0">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="h-5 text-[10px] font-normal">
+            {stats.count} 张发票
+          </Badge>
+          <Separator orientation="vertical" className="h-3.5" />
+          <span>{formatCurrency(stats.totalAmount)}</span>
           {loading && (
             <>
-              <span className="mx-3">|</span>
-              <span className="text-[var(--color-primary)]">加载中...</span>
+              <Separator orientation="vertical" className="h-3.5" />
+              <span className="text-primary animate-pulse">加载中...</span>
             </>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1">
-            <Wallet size={12} />
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="h-5 text-[10px] font-normal gap-1">
+            <Wallet size={10} />
             ${Number(user.balance).toFixed(2)}
-          </span>
+          </Badge>
+          <Separator orientation="vertical" className="h-3.5" />
           <span>{user.email}</span>
-          <button
+          <Button
+            variant="ghost"
+            size="icon-xs"
             onClick={onLogout}
-            className="flex items-center gap-1 text-gray-400 hover:text-[var(--color-danger)] transition"
+            className="text-muted-foreground hover:text-destructive"
             title="退出登录"
           >
             <LogOut size={12} />
-          </button>
+          </Button>
         </div>
       </div>
     </div>
