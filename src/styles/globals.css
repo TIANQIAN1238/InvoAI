@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #f8f9fa;
+  --color-sidebar: #ffffff;
+  --color-border: #e5e7eb;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-text: #111827;
+  --color-text-secondary: #6b7280;
+  --color-accent: #f0f7ff;
+  --color-danger: #ef4444;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Panel resize handle */
+[data-panel-group-direction="horizontal"] > [data-resize-handle] {
+  width: 1px;
+  background: var(--color-border);
+  transition: background 0.15s;
+}
+[data-panel-group-direction="horizontal"] > [data-resize-handle]:hover,
+[data-panel-group-direction="horizontal"] > [data-resize-handle][data-resize-handle-active] {
+  background: var(--color-primary);
+  width: 2px;
+}

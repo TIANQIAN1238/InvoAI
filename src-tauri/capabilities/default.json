@@ -1,0 +1,35 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capabilities for invoice manager",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "fs:default",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-exists",
+    "fs:allow-mkdir",
+    "fs:allow-read-dir",
+    "fs:allow-copy-file",
+    "dialog:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "dialog:allow-message",
+    "dialog:allow-ask",
+    "sql:default",
+    "sql:allow-load",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "sql:allow-close",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://api.openai-next.com/**" }
+      ]
+    },
+    "store:default"
+  ]
+}

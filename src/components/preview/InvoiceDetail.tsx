@@ -1,0 +1,42 @@
+import type { Invoice } from '@/types/invoice';
+import { formatCurrency } from '@/lib/utils';
+
+interface InvoiceDetailProps {
+  invoice: Invoice;
+}
+
+const fields: Array<{ key: keyof Invoice; label: string; format?: (v: unknown) => string }> = [
+  { key: 'invoice_type', label: '发票类型' },
+  { key: 'invoice_number', label: '发票号码' },
+  { key: 'invoice_code', label: '发票代码' },
+  { key: 'invoice_date', label: '开票日期' },
+  { key: 'amount', label: '不含税金额', format: v => formatCurrency(v as number) },
+  { key: 'tax_amount', label: '税额', format: v => formatCurrency(v as number) },
+  { key: 'total_amount', label: '价税合计', format: v => formatCurrency(v as number) },
+  { key: 'seller_name', label: '销售方' },
+  { key: 'buyer_name', label: '购买方' },
+  { key: 'remarks', label: '备注' },
+];
+
+export function InvoiceDetail({ invoice }: InvoiceDetailProps) {
+  return (
+    <div className="p-3 bg-white max-h-48 overflow-y-auto">
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+        发票信息
+      </h3>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+        {fields.map(({ key, label, format }) => {
+          const value = invoice[key];
+          if (!value && value !== 0) return null;
+          const display = format ? format(value) : String(value);
+          return (
+            <div key={key} className="flex items-baseline gap-1.5">
+              <span className="text-xs text-gray-400 shrink-0">{label}</span>
+              <span className="text-xs font-medium truncate">{display}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
