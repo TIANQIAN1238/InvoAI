@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { convertFileSrc } from '@tauri-apps/api/core';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -14,12 +13,29 @@ interface PdfViewerProps {
   filePath: string;
 }
 
+function toViewableUrl(filePath: string): string {
+  if (filePath.startsWith('web:')) return '';
+  try {
+    const tauri = (window as unknown as { __TAURI_INTERNALS__: { convertFileSrc: (path: string) => string } }).__TAURI_INTERNALS__;
+    if (tauri?.convertFileSrc) return tauri.convertFileSrc(filePath);
+  } catch { /* not in Tauri */ }
+  return filePath;
+}
+
 export function PdfViewer({ filePath }: PdfViewerProps) {
   const [numPages, setNumPages] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
 
-  const fileUrl = convertFileSrc(filePath);
+  const fileUrl = toViewableUrl(filePath);
+
+  if (!fileUrl) {
+    return (
+      <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+        Web 模式暂不支持 PDF 预览
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
