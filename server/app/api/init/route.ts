@@ -8,7 +8,7 @@ export async function POST() {
     await initDatabase();
     return json({ ok: true });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : '初始化失败';
+    const msg = err instanceof Error ? err.message : 'Initialization failed';
     return error(msg, 500);
   }
 }

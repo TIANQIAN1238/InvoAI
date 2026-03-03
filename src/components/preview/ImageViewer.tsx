@@ -15,7 +15,7 @@ function toViewableUrl(filePath: string): string {
     const tauri = (window as unknown as { __TAURI_INTERNALS__: { convertFileSrc: (path: string) => string } }).__TAURI_INTERNALS__;
     if (tauri?.convertFileSrc) return tauri.convertFileSrc(filePath);
   } catch {
-    // not in Tauri
+    // Not in Tauri.
   }
 
   return filePath;
@@ -55,7 +55,7 @@ export function ImageViewer({ filePath, invoiceId }: ImageViewerProps) {
         }
       } catch (err) {
         if (!cancelled) {
-          const msg = err instanceof Error ? err.message : '图片加载失败';
+          const msg = err instanceof Error ? err.message : 'Failed to load image';
           setLoadError(msg);
         }
       } finally {
@@ -76,7 +76,7 @@ export function ImageViewer({ filePath, invoiceId }: ImageViewerProps) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground text-sm gap-2">
         <Loader2 size={16} className="animate-spin" />
-        加载图片中...
+        Loading image...
       </div>
     );
   }
@@ -84,7 +84,7 @@ export function ImageViewer({ filePath, invoiceId }: ImageViewerProps) {
   if (!assetUrl || loadError) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-        {loadError || '图片预览不可用'}
+        {loadError || 'Image preview is unavailable'}
       </div>
     );
   }
@@ -95,7 +95,7 @@ export function ImageViewer({ filePath, invoiceId }: ImageViewerProps) {
         <button
           onClick={() => setScale(s => Math.max(0.25, s - 0.25))}
           className="p-1.5 rounded hover:bg-gray-200 text-gray-600"
-          title="缩小"
+          title="Zoom out"
         >
           <ZoomOut size={16} />
         </button>
@@ -105,14 +105,14 @@ export function ImageViewer({ filePath, invoiceId }: ImageViewerProps) {
         <button
           onClick={() => setScale(s => Math.min(3, s + 0.25))}
           className="p-1.5 rounded hover:bg-gray-200 text-gray-600"
-          title="放大"
+          title="Zoom in"
         >
           <ZoomIn size={16} />
         </button>
         <button
           onClick={() => setRotation(r => (r + 90) % 360)}
           className="p-1.5 rounded hover:bg-gray-200 text-gray-600"
-          title="旋转"
+          title="Rotate"
         >
           <RotateCw size={16} />
         </button>
@@ -120,14 +120,14 @@ export function ImageViewer({ filePath, invoiceId }: ImageViewerProps) {
           onClick={() => { setScale(1); setRotation(0); }}
           className="px-2 py-1 text-xs rounded hover:bg-gray-200 text-gray-500"
         >
-          重置
+          Reset
         </button>
       </div>
 
       <div className="flex-1 overflow-auto flex items-center justify-center bg-gray-100 rounded-lg">
         <img
           src={assetUrl}
-          alt="发票预览"
+          alt="Invoice preview"
           style={{
             transform: `scale(${scale}) rotate(${rotation}deg)`,
             transition: 'transform 0.2s',

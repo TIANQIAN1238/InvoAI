@@ -6,28 +6,27 @@ export async function OPTIONS() { return corsResponse(); }
 
 export async function POST(request: Request) {
   const payload = await getUserFromHeader(request);
-  if (!payload) return error('未登录', 401);
+  if (!payload) return error('Unauthorized', 401);
 
-  // 检查余额
   const balance = await checkBalance(payload.userId);
   if (balance <= 0) {
-    return error('余额不足，请充值', 402);
+    return error('Insufficient balance', 402);
   }
 
   let body: { messages?: unknown; model?: string };
   try {
     body = await request.json();
   } catch {
-    return error('请求格式错误');
+    return error('Invalid request payload');
   }
 
   const { messages, model = 'gemini-3-flash-preview' } = body;
   if (!messages || !Array.isArray(messages)) {
-    return error('消息不能为空');
+    return error('Messages are required');
   }
 
   if (!isAllowedModel(model)) {
-    return error(`不支持的模型: ${model}`);
+    return error(`Unsupported model: ${model}`);
   }
 
   try {
@@ -35,12 +34,11 @@ export async function POST(request: Request) {
 
     if (!aiResponse.ok) {
       const text = await aiResponse.text();
-      return error(`AI 服务错误: ${text}`, 502);
+      return error(`AI service error: ${text}`, 502);
     }
 
-    // 创建 SSE 流式转发
     const reader = aiResponse.body?.getReader();
-    if (!reader) return error('无法获取流', 500);
+    if (!reader) return error('Unable to read upstream stream', 500);
 
     let totalContent = '';
     let promptTokens = 0;
@@ -79,32 +77,32 @@ export async function POST(request: Request) {
                   const delta = parsed.choices?.[0]?.delta?.content || '';
                   if (delta) totalContent += delta;
 
-                  // 提取 usage 信息（有些模型在最后一个 chunk 返回）
                   if (parsed.usage) {
                     promptTokens = parsed.usage.prompt_tokens || 0;
                     completionTokens = parsed.usage.completion_tokens || 0;
                   }
                 } catch {
-                  // 解析失败，原样转发
+                  // Keep forwarding upstream chunks.
                 }
 
-                // 原样转发 SSE 数据
-                controller.enqueue(encoder.encode(line + '\n'));
+                controller.enqueue(encoder.encode(`${line}\n`));
               } else {
-                controller.enqueue(encoder.encode(line + '\n'));
+                controller.enqueue(encoder.encode(`${line}\n`));
               }
             }
           }
 
-          // 流结束后扣费
           if (promptTokens === 0) {
-            // 估算 token 数（当 API 不返回 usage 时）
             promptTokens = Math.ceil(JSON.stringify(messages).length / 4);
             completionTokens = Math.ceil(totalContent.length / 4);
           }
 
           await checkAndDeductBalance(
-            payload.userId, model, promptTokens, completionTokens, 'chat'
+            payload.userId,
+            model,
+            promptTokens,
+            completionTokens,
+            'chat'
           );
         } catch (err) {
           console.error('Stream error:', err);
@@ -119,11 +117,11 @@ export async function POST(request: Request) {
         ...corsHeaders(),
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
       },
     });
   } catch (err) {
     console.error('Chat proxy error:', err);
-    return error('AI 服务暂不可用', 502);
+    return error('AI service is temporarily unavailable', 502);
   }
 }

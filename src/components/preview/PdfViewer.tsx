@@ -23,7 +23,7 @@ function toViewableUrl(filePath: string): string {
     const tauri = (window as unknown as { __TAURI_INTERNALS__: { convertFileSrc: (path: string) => string } }).__TAURI_INTERNALS__;
     if (tauri?.convertFileSrc) return tauri.convertFileSrc(filePath);
   } catch {
-    // not in Tauri
+    // Not in Tauri.
   }
 
   return filePath;
@@ -64,7 +64,7 @@ export function PdfViewer({ filePath, invoiceId }: PdfViewerProps) {
         }
       } catch (err) {
         if (!cancelled) {
-          const msg = err instanceof Error ? err.message : 'PDF 加载失败';
+          const msg = err instanceof Error ? err.message : 'Failed to load PDF';
           setLoadError(msg);
         }
       } finally {
@@ -87,7 +87,7 @@ export function PdfViewer({ filePath, invoiceId }: PdfViewerProps) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground text-sm gap-2">
         <Loader2 size={16} className="animate-spin" />
-        加载 PDF 中...
+        Loading PDF...
       </div>
     );
   }
@@ -95,7 +95,7 @@ export function PdfViewer({ filePath, invoiceId }: PdfViewerProps) {
   if (!fileUrl || loadError) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-        {loadError || 'PDF 预览不可用'}
+        {loadError || 'PDF preview is unavailable'}
       </div>
     );
   }
@@ -142,8 +142,8 @@ export function PdfViewer({ filePath, invoiceId }: PdfViewerProps) {
         <Document
           file={fileUrl}
           onLoadSuccess={({ numPages: pages }) => setNumPages(pages)}
-          loading={<div className="p-8 text-sm text-gray-400">加载PDF中...</div>}
-          error={<div className="p-8 text-sm text-red-400">PDF加载失败</div>}
+          loading={<div className="p-8 text-sm text-gray-400">Loading PDF...</div>}
+          error={<div className="p-8 text-sm text-red-400">Failed to load PDF</div>}
         >
           <Page pageNumber={pageNumber} scale={scale} />
         </Document>

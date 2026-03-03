@@ -23,7 +23,7 @@ interface FileTreeProps {
 }
 
 function getFileIcon(name: string, isDir: boolean) {
-  if (isDir) return null; // handled by Folder/FolderOpen
+  if (isDir) return null;
   if (isImageFile(name)) return <FileImage size={14} className="text-green-500 shrink-0" />;
   if (isPdfFile(name)) return <FileText size={14} className="text-red-500 shrink-0" />;
   return <File size={14} className="text-muted-foreground shrink-0" />;
@@ -144,7 +144,7 @@ export function FileTree({ onSelectFile, selectedPath }: FileTreeProps) {
     }
 
     node.expanded = !node.expanded;
-    setTree(prev => [...prev]); // trigger re-render
+    setTree(prev => [...prev]);
   }, [loadDir]);
 
   const handleSelect = useCallback((node: TreeNode) => {
@@ -155,12 +155,12 @@ export function FileTree({ onSelectFile, selectedPath }: FileTreeProps) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-muted-foreground px-4">
         <Folder size={32} strokeWidth={1} className="mb-2" />
-        <p className="text-xs text-center mb-3">打开一个文件夹开始管理发票</p>
+        <p className="text-xs text-center mb-3">Open a folder to browse invoice files</p>
         <button
           onClick={handleOpenFolder}
           className="text-xs text-primary hover:underline"
         >
-          选择文件夹...
+          Select Folder...
         </button>
       </div>
     );
@@ -168,21 +168,19 @@ export function FileTree({ onSelectFile, selectedPath }: FileTreeProps) {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Folder header */}
       <div
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-accent/50"
         onClick={handleOpenFolder}
-        title="点击切换文件夹"
+        title="Click to switch folder"
       >
         <FolderOpen size={14} className="text-amber-500 shrink-0" />
         <span className="truncate">{rootName}</span>
       </div>
 
-      {/* File tree */}
       <div className="flex-1 min-h-0 overflow-y-auto py-1">
         {tree.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-4">
-            文件夹为空
+            Folder is empty
           </div>
         ) : (
           tree.map(node => (

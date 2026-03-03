@@ -64,7 +64,7 @@ function readFileAsBase64Web(file: File): Promise<string> {
       const result = reader.result as string;
       resolve(result.split(',')[1] || result);
     };
-    reader.onerror = () => reject(new Error('文件读取失败'));
+    reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(file);
   });
 }
@@ -101,32 +101,29 @@ function normalizeAmount(value: string | number | undefined): number {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : 0;
   }
-  const cleaned = value.replace(/[\s,，¥￥元]/g, '');
+
+  const cleaned = value.replace(/[^\d.-]/g, '');
   const matched = cleaned.match(/-?\d+(?:\.\d+)?/);
   if (!matched) return 0;
+
   const parsed = Number(matched[0]);
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function normalizeDate(value: string | undefined): string | null {
   if (!value) return null;
-  const compact = value
-    .trim()
-    .replace(/[年./]/g, '-')
-    .replace(/月/g, '-')
-    .replace(/[日号]/g, '')
-    .replace(/\s+/g, '');
 
-  const matched = compact.match(/(\d{4})-?(\d{1,2})-?(\d{1,2})/);
-  if (!matched) return null;
+  const parts = value.match(/\d+/g);
+  if (!parts || parts.length < 3) return null;
 
-  const year = Number(matched[1]);
-  const month = Number(matched[2]);
-  const day = Number(matched[3]);
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
 
   if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
     return null;
   }
+
   if (month < 1 || month > 12) return null;
 
   const maxDay = new Date(year, month, 0).getDate();
@@ -186,7 +183,7 @@ export function useInvoices() {
       });
     } catch (err) {
       console.error('Failed to load invoices:', err);
-      const msg = err instanceof Error ? err.message : '加载发票失败';
+      const msg = err instanceof Error ? err.message : 'Failed to load invoices';
       setError(msg);
     } finally {
       setLoading(false);
@@ -320,7 +317,7 @@ export function useInvoices() {
       }
     } catch (err) {
       console.error('Upload failed:', err);
-      const msg = err instanceof Error ? err.message : '上传失败';
+      const msg = err instanceof Error ? err.message : 'Upload failed';
       setError(msg);
     } finally {
       setUploadProgress(null);
@@ -342,7 +339,7 @@ export function useInvoices() {
       await loadInvoices();
     } catch (err) {
       console.error('Failed to delete invoice:', err);
-      const msg = err instanceof Error ? err.message : '删除失败';
+      const msg = err instanceof Error ? err.message : 'Delete failed';
       setError(msg);
     }
   }, [selectedInvoice, loadInvoices]);

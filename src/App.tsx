@@ -28,24 +28,24 @@ interface OcrSummary {
 
 function formatOcrResult(fileName: string, ocr: OcrSummary | null): string {
   if (!ocr) {
-    return `**发票识别失败** (${fileName})\n\n文件已保存到发票列表，但 OCR 识别未成功。你可以在左侧选择该发票后重新处理。`;
+    return `**Invoice recognition failed** (${fileName})\n\nThe file was saved in the invoice list, but OCR could not be completed.`;
   }
 
   return [
-    `**发票识别结果** (${fileName})`,
+    `**Invoice Recognition Result** (${fileName})`,
     '',
-    '| 字段 | 内容 |',
+    '| Field | Value |',
     '| --- | --- |',
-    ocr.invoice_type ? `| 发票类型 | ${ocr.invoice_type} |` : '',
-    ocr.invoice_number ? `| 发票号码 | ${ocr.invoice_number} |` : '',
-    ocr.invoice_code ? `| 发票代码 | ${ocr.invoice_code} |` : '',
-    ocr.invoice_date ? `| 开票日期 | ${ocr.invoice_date} |` : '',
-    ocr.seller_name ? `| 销售方 | ${ocr.seller_name} |` : '',
-    ocr.buyer_name ? `| 购买方 | ${ocr.buyer_name} |` : '',
-    `| 不含税金额 | ¥${ocr.amount.toFixed(2)} |`,
-    `| 税额 | ¥${ocr.tax_amount.toFixed(2)} |`,
-    `| 价税合计 | ¥${ocr.total_amount.toFixed(2)} |`,
-    ocr.remarks ? `| 备注 | ${ocr.remarks} |` : '',
+    ocr.invoice_type ? `| Invoice Type | ${ocr.invoice_type} |` : '',
+    ocr.invoice_number ? `| Invoice Number | ${ocr.invoice_number} |` : '',
+    ocr.invoice_code ? `| Invoice Code | ${ocr.invoice_code} |` : '',
+    ocr.invoice_date ? `| Issue Date | ${ocr.invoice_date} |` : '',
+    ocr.seller_name ? `| Seller | ${ocr.seller_name} |` : '',
+    ocr.buyer_name ? `| Buyer | ${ocr.buyer_name} |` : '',
+    `| Amount (excl. tax) | CNY ${ocr.amount.toFixed(2)} |`,
+    `| Tax | CNY ${ocr.tax_amount.toFixed(2)} |`,
+    `| Total | CNY ${ocr.total_amount.toFixed(2)} |`,
+    ocr.remarks ? `| Remarks | ${ocr.remarks} |` : '',
   ].filter(Boolean).join('\n');
 }
 
@@ -109,8 +109,8 @@ function App() {
   const handleSendFile = useCallback(async (attachment: AttachedFile, note?: string) => {
     if (isStreaming) return;
 
-    addMessage('user', note?.trim() ? `[发送文件] ${attachment.name}\n${note.trim()}` : `[发送文件] ${attachment.name}`);
-    addMessage('assistant', '正在上传并识别发票内容...');
+    addMessage('user', note?.trim() ? `[File] ${attachment.name}\n${note.trim()}` : `[File] ${attachment.name}`);
+    addMessage('assistant', 'Uploading and recognizing invoice...');
     setIsStreaming(true);
 
     try {
@@ -125,7 +125,7 @@ function App() {
             const result = reader.result as string;
             resolve(result.split(',')[1] || result);
           };
-          reader.onerror = () => reject(new Error('文件读取失败'));
+          reader.onerror = () => reject(new Error('Failed to read file'));
           reader.readAsDataURL(attachment.file as File);
         });
         filePath = `web:${attachment.name}`;
@@ -140,7 +140,7 @@ function App() {
         base64 = await invoke<string>('read_file_as_base64', { filePath: copiedPath });
         filePath = copiedPath;
       } else {
-        throw new Error('无法读取附件内容');
+        throw new Error('Unable to read attachment');
       }
 
       const { ocr } = await importInvoice({
@@ -156,8 +156,8 @@ function App() {
       updateLastAssistant(formatted);
       await refreshUser();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '识别失败';
-      updateLastAssistant(`处理失败: ${msg}`);
+      const msg = err instanceof Error ? err.message : 'Recognition failed';
+      updateLastAssistant(`Processing failed: ${msg}`);
     } finally {
       setIsStreaming(false);
     }
@@ -180,21 +180,10 @@ function App() {
 
     const invoiceDetails = invoices
       .filter(inv => inv.status === 'recognized')
-      .map(inv => `- ${inv.seller_name} → ${inv.buyer_name} | 发票号:${inv.invoice_number} | 日期:${(inv.invoice_date || '').slice(0, 10)} | 金额:¥${inv.total_amount} | 类型:${inv.invoice_type}`)
+      .map(inv => `- ${inv.seller_name} -> ${inv.buyer_name} | No:${inv.invoice_number} | Date:${(inv.invoice_date || '').slice(0, 10)} | Amount:CNY ${inv.total_amount} | Type:${inv.invoice_type}`)
       .join('\n');
 
-    const systemContext = `你是一个发票管理助手。用户当前有 ${stats.count} 张发票，总金额 ¥${stats.totalAmount} 元。
-
-已识别发票列表：
-${invoiceDetails || '暂无已识别发票'}
-
-你的能力：
-1. 回答发票统计分析问题（按公司、日期、金额等维度）
-2. 帮助查找特定发票
-3. 提供税务相关建议
-4. 用户可以拖拽/附加发票文件到聊天框进行OCR识别
-
-请用中文回答。对于统计类问题，请基于上面的发票列表数据进行分析。`;
+    const systemContext = `You are an invoice management assistant. The user currently has ${stats.count} invoices with a total amount of CNY ${stats.totalAmount}.\n\nRecognized invoice list:\n${invoiceDetails || 'No recognized invoices yet'}\n\nCapabilities:\n1. Invoice analytics by company/date/amount\n2. Help locate specific invoices\n3. Provide tax-related guidance\n4. User may attach an invoice file in chat for OCR\n\nPlease respond in English. For analytics, use only the invoice list above.`;
 
     sendMessage(content, { model: settings.model }, systemContext);
   }, [handleSendFile, sendMessage, settings.model, stats, invoices]);
@@ -204,7 +193,7 @@ ${invoiceDetails || '暂无已识别发票'}
       <div className="h-screen w-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-          <span className="text-sm text-gray-500">加载中...</span>
+          <span className="text-sm text-gray-500">Loading...</span>
         </div>
       </div>
     );

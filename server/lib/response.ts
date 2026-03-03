@@ -1,4 +1,4 @@
-// CORS preflight 处理
+// CORS preflight helpers.
 export function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',

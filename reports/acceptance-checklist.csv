@@ -1,9 +1,9 @@
 requirement_id,requirement,status,implementation,notes
-R1,上传图片/PDF发票文件并落库,PASS,src/hooks/useInvoices.ts + server/app/api/invoices/route.ts,Web端上传时同时存储文件二进制;Tauri端复制到工作目录并入库
-R2,识别发票要素并存储,PASS,src/hooks/useInvoices.ts processOcr + server/app/api/ai/recognize/route.ts,新增日期金额标准化后入库避免格式错误
-R3,存储发票图片/PDF并可取回,PASS,server/lib/db.ts invoice_files + server/app/api/invoices/[id]/file/route.ts,支持按发票ID提取base64内容
-R4,查询:日期范围检索,PASS,server/app/api/invoices/route.ts + src/components/sidebar/Sidebar.tsx,前端日期范围校验;后端按invoice_date过滤
-R5,查询:文字模糊查找,PASS,server/app/api/invoices/route.ts + server/app/api/invoices/stats/route.ts,模糊搜索扩展到发票号/代码/买卖方/类型/备注/文件名
-R6,单击信息展示发票图片,PASS,src/components/preview/PreviewPanel.tsx + ImageViewer.tsx + PdfViewer.tsx,Web模式按ID拉取文件并预览;Tauri模式走本地路径预览
-R7,统计:显示张数与金额总数,PASS,server/app/api/invoices/stats/route.ts + src/components/layout/AppLayout.tsx,统计与筛选条件联动
-R8,交互友好性提升,PASS,src/components/sidebar/Sidebar.tsx + src/App.tsx + src/components/sidebar/InvoiceList.tsx,上传进度提示/错误提示/删除确认/聊天附件识别链路打通
+R1,Upload image/PDF invoices and persist records,PASS,src/hooks/useInvoices.ts + server/app/api/invoices/route.ts,Web uploads store file blobs; Tauri uploads copy files into workspace and persist metadata
+R2,Extract and store invoice fields via OCR,PASS,src/hooks/useInvoices.ts processOcr + server/app/api/ai/recognize/route.ts,OCR output is normalized (date and amount parsing) before writing to database
+R3,Store invoice files and support retrieval,PASS,server/lib/db.ts invoice_files + server/app/api/invoices/[id]/file/route.ts,Invoice file data is returned by invoice ID as base64 for preview
+R4,Search by date range,PASS,server/app/api/invoices/route.ts + src/components/sidebar/Sidebar.tsx,Client validates date range and server filters by invoice_date
+R5,Fuzzy text search,PASS,server/app/api/invoices/route.ts + server/app/api/invoices/stats/route.ts,Search covers invoice number/code, seller/buyer, type, remarks, and filename
+R6,Click record to view original invoice file,PASS,src/components/preview/PreviewPanel.tsx + ImageViewer.tsx + PdfViewer.tsx,Web fetches by invoice ID; Tauri previews directly from local file path
+R7,Statistics by filters (count and total amount),PASS,server/app/api/invoices/stats/route.ts + src/components/layout/AppLayout.tsx,Statistics are computed using the same active filters as list queries
+R8,Usable and logical interactions,PASS,src/components/sidebar/Sidebar.tsx + src/App.tsx + src/components/sidebar/InvoiceList.tsx,Includes upload progress, error handling, delete confirmation, and chat attachment OCR flow

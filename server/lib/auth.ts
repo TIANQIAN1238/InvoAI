@@ -40,7 +40,7 @@ export async function verifyToken(token: string): Promise<JwtPayload> {
   return payload as unknown as JwtPayload;
 }
 
-// 从 Authorization header 解析用户
+// Parse user from Authorization header.
 export async function getUserFromHeader(request: Request): Promise<JwtPayload | null> {
   const auth = request.headers.get('Authorization');
   if (!auth?.startsWith('Bearer ')) return null;
@@ -51,33 +51,37 @@ export async function getUserFromHeader(request: Request): Promise<JwtPayload | 
   }
 }
 
-// 注册
+// Register.
 export async function registerUser(email: string, password: string): Promise<{ id: number; token: string }> {
   const existing = await query<UserRow[]>('SELECT id FROM users WHERE email = ?', [email]);
   if (existing.length > 0) {
-    throw new Error('邮箱已注册');
+    throw new Error('Email is already registered');
   }
+
   const hash = await hashPassword(password);
   const result = await execute(
     'INSERT INTO users (email, password_hash, display_name) VALUES (?, ?, ?)',
     [email, hash, email.split('@')[0]]
   );
+
   const token = await createToken({ userId: result.insertId, email });
   return { id: result.insertId, token };
 }
 
-// 登录
+// Login.
 export async function loginUser(email: string, password: string): Promise<{ id: number; token: string }> {
   const rows = await query<UserRow[]>('SELECT * FROM users WHERE email = ?', [email]);
-  if (rows.length === 0) throw new Error('邮箱或密码错误');
+  if (rows.length === 0) throw new Error('Invalid email or password');
+
   const user = rows[0];
   const valid = await verifyPassword(password, user.password_hash);
-  if (!valid) throw new Error('邮箱或密码错误');
+  if (!valid) throw new Error('Invalid email or password');
+
   const token = await createToken({ userId: user.id, email: user.email });
   return { id: user.id, token };
 }
 
-// 获取用户信息
+// Fetch user profile.
 export async function getUserInfo(userId: number) {
   const rows = await query<UserRow[]>(
     'SELECT id, email, display_name, balance, created_at FROM users WHERE id = ?',

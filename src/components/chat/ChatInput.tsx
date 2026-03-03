@@ -2,14 +2,11 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Send, Paperclip, X, FileText, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// 附件信息：可以是 Web File 或 Tauri 文件路径
 export interface AttachedFile {
   name: string;
   size?: number;
   type: string;
-  // Web 环境用 File 对象
   file?: File;
-  // Tauri 环境用文件路径
   filePath?: string;
 }
 
@@ -19,9 +16,9 @@ interface ChatInputProps {
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function getFileIcon(type: string) {
@@ -37,7 +34,7 @@ function isTauri(): boolean {
 function guessFileType(name: string): string {
   const ext = name.split('.').pop()?.toLowerCase() || '';
   if (ext === 'pdf') return 'application/pdf';
-  if (['jpg', 'jpeg', 'png', 'bmp', 'webp', 'gif'].includes(ext)) return 'image/' + ext;
+  if (['jpg', 'jpeg', 'png', 'bmp', 'webp', 'gif'].includes(ext)) return `image/${ext}`;
   return 'application/octet-stream';
 }
 
@@ -48,7 +45,6 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Tauri 拖拽监听
   useEffect(() => {
     if (!isTauri()) return;
 
@@ -67,7 +63,6 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
               const path = paths[0];
               const name = path.split('/').pop() || path.split('\\').pop() || 'file';
               const type = guessFileType(name);
-              // 只接受 PDF 和图片
               if (type === 'application/pdf' || type.startsWith('image/')) {
                 setAttachedFile({ name, type, filePath: path });
               }
@@ -77,7 +72,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           }
         });
       } catch (err) {
-        console.error('Failed to setup Tauri drag drop:', err);
+        console.error('Failed to setup Tauri drag/drop listener:', err);
       }
     })();
 
@@ -113,13 +108,12 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const handleInput = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
   };
 
-  // Web HTML5 拖拽
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    if (isTauri()) return; // Tauri 用自己的事件
+    if (isTauri()) return;
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(true);
@@ -133,15 +127,13 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
-    if (isTauri()) return; // Tauri 用自己的事件
+    if (isTauri()) return;
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
 
     const files = Array.from(e.dataTransfer.files);
-    const validFile = files.find(f =>
-      f.type === 'application/pdf' || f.type.startsWith('image/')
-    );
+    const validFile = files.find(f => f.type === 'application/pdf' || f.type.startsWith('image/'));
 
     if (validFile) {
       setAttachedFile({
@@ -179,7 +171,6 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Attached file preview (mention style) */}
       {attachedFile && (
         <div className="mb-2 flex items-center gap-2 p-2 bg-primary/10 border border-primary/20 rounded-md">
           {getFileIcon(attachedFile.type)}
@@ -189,7 +180,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
               <div className="text-[10px] text-muted-foreground">{formatFileSize(attachedFile.size)}</div>
             )}
           </div>
-          <span className="text-[10px] text-primary font-medium shrink-0">@发票</span>
+          <span className="text-[10px] text-primary font-medium shrink-0">@invoice</span>
           <Button
             variant="ghost"
             size="icon-xs"
@@ -201,10 +192,9 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         </div>
       )}
 
-      {/* Drop overlay hint */}
       {isDragOver && (
         <div className="mb-2 border-2 border-dashed border-primary rounded-md p-3 text-center text-xs text-primary bg-primary/5">
-          松开以添加文件（PDF/图片）
+          Drop to attach file (PDF/Image)
         </div>
       )}
 
@@ -215,7 +205,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           onClick={handleFileSelect}
           disabled={disabled}
           className="shrink-0 text-muted-foreground hover:text-foreground"
-          title="添加文件"
+          title="Attach file"
         >
           <Paperclip size={16} />
         </Button>
@@ -228,10 +218,10 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           onInput={handleInput}
           placeholder={
             disabled
-              ? 'AI 正在处理...'
+              ? 'AI is processing...'
               : attachedFile
-                ? '可输入补充说明，按 Enter 发送识别'
-                : '输入消息或拖拽文件... (Enter 发送)'
+                ? 'Optional note. Press Enter to send and run OCR'
+                : 'Type a message or drag a file... (Enter to send)'
           }
           disabled={disabled}
           rows={1}

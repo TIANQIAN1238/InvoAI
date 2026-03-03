@@ -1,5 +1,5 @@
--- 在 TiDB Serverless 中执行此脚本初始化数据库
--- 或者调用 POST /api/init 自动创建
+-- Run this script in TiDB Serverless / MySQL to initialize schema.
+-- Or call POST /api/init to auto-create tables.
 
 CREATE DATABASE IF NOT EXISTS invoice_db;
 USE invoice_db;

@@ -12,9 +12,9 @@ interface InvoiceListProps {
 }
 
 const statusConfig = {
-  pending: { icon: Loader2, variant: 'outline' as const, label: '识别中', animate: true },
-  recognized: { icon: CheckCircle, variant: 'secondary' as const, label: '已识别', animate: false },
-  failed: { icon: AlertCircle, variant: 'destructive' as const, label: '识别失败', animate: false },
+  pending: { icon: Loader2, variant: 'outline' as const, label: 'Recognizing', animate: true },
+  recognized: { icon: CheckCircle, variant: 'secondary' as const, label: 'Ready', animate: false },
+  failed: { icon: AlertCircle, variant: 'destructive' as const, label: 'Failed', animate: false },
 } as const;
 
 function formatDate(dateStr: string | null): string {
@@ -51,34 +51,38 @@ export function InvoiceList({ invoices, selectedInvoice, onSelectInvoice, onDele
                     {status.label}
                   </Badge>
                 </div>
+
                 {invoice.status === 'pending' && (
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    正在使用 AI 识别发票内容...
+                    OCR is running...
                   </div>
                 )}
+
                 {invoice.status === 'recognized' && (
                   <>
                     <div className="text-xs text-muted-foreground mt-0.5 truncate">
                       {invoice.invoice_number && `No.${invoice.invoice_number}`}
-                      {invoice.invoice_date && ` · ${formatDate(invoice.invoice_date)}`}
+                      {invoice.invoice_date && ` | ${formatDate(invoice.invoice_date)}`}
                     </div>
                     <div className="text-xs font-medium text-primary mt-0.5">
                       {formatCurrency(invoice.total_amount)}
                     </div>
                   </>
                 )}
+
                 {invoice.status === 'failed' && (
                   <div className="text-xs text-destructive mt-0.5">
-                    识别失败，请重试
+                    Recognition failed. You can try again.
                   </div>
                 )}
               </div>
+
               <Button
                 variant="ghost"
                 size="icon-xs"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (window.confirm(`确定删除发票「${invoice.file_name}」吗？`)) {
+                  if (window.confirm(`Delete invoice "${invoice.file_name}"?`)) {
                     onDelete(invoice.id);
                   }
                 }}

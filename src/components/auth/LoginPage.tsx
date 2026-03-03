@@ -31,7 +31,7 @@ export function LoginPage({ onLogin, onRegister, error, onClearError }: LoginPag
         await onLogin(email, password);
       }
     } catch {
-      // error handled by parent
+      // Parent handles error state.
     } finally {
       setLoading(false);
     }
@@ -45,21 +45,20 @@ export function LoginPage({ onLogin, onRegister, error, onClearError }: LoginPag
   return (
     <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-indigo-50">
       <div className="w-full max-w-md mx-4">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4 shadow-lg">
             <FileText size={32} className="text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">InvoAI</h1>
-          <p className="text-sm text-muted-foreground mt-1">智能发票识别 · 便捷管理 · AI 助手</p>
+          <p className="text-sm text-muted-foreground mt-1">Smart OCR, search, analytics, and chat assistant</p>
         </div>
 
         <Card className="shadow-lg">
           <Tabs value={activeTab} onValueChange={handleTabChange}>
             <CardHeader className="pb-4">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">登录</TabsTrigger>
-                <TabsTrigger value="register">注册</TabsTrigger>
+                <TabsTrigger value="login">Sign In</TabsTrigger>
+                <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
             </CardHeader>
 
@@ -72,11 +71,11 @@ export function LoginPage({ onLogin, onRegister, error, onClearError }: LoginPag
               )}
 
               <TabsContent value="login" className="mt-0">
-                <CardTitle className="text-lg mb-1">欢迎回来</CardTitle>
-                <CardDescription className="mb-4">输入你的邮箱和密码登录</CardDescription>
+                <CardTitle className="text-lg mb-1">Welcome back</CardTitle>
+                <CardDescription className="mb-4">Sign in with your email and password</CardDescription>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">邮箱</Label>
+                    <Label htmlFor="login-email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -91,7 +90,7 @@ export function LoginPage({ onLogin, onRegister, error, onClearError }: LoginPag
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">密码</Label>
+                    <Label htmlFor="login-password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -99,7 +98,7 @@ export function LoginPage({ onLogin, onRegister, error, onClearError }: LoginPag
                         type="password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        placeholder="输入密码"
+                        placeholder="Enter password"
                         className="pl-10"
                         minLength={6}
                         required
@@ -108,17 +107,17 @@ export function LoginPage({ onLogin, onRegister, error, onClearError }: LoginPag
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    登录
+                    Sign In
                   </Button>
                 </form>
               </TabsContent>
 
               <TabsContent value="register" className="mt-0">
-                <CardTitle className="text-lg mb-1">创建账号</CardTitle>
-                <CardDescription className="mb-4">注册即送 $5.00 AI 体验额度</CardDescription>
+                <CardTitle className="text-lg mb-1">Create account</CardTitle>
+                <CardDescription className="mb-4">New accounts start with a $5.00 AI balance</CardDescription>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="register-email">邮箱</Label>
+                    <Label htmlFor="register-email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -133,7 +132,7 @@ export function LoginPage({ onLogin, onRegister, error, onClearError }: LoginPag
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-password">密码</Label>
+                    <Label htmlFor="register-password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -141,7 +140,7 @@ export function LoginPage({ onLogin, onRegister, error, onClearError }: LoginPag
                         type="password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        placeholder="至少 6 位密码"
+                        placeholder="At least 6 characters"
                         className="pl-10"
                         minLength={6}
                         required
@@ -150,7 +149,7 @@ export function LoginPage({ onLogin, onRegister, error, onClearError }: LoginPag
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    注册
+                    Register
                   </Button>
                 </form>
               </TabsContent>
@@ -159,7 +158,7 @@ export function LoginPage({ onLogin, onRegister, error, onClearError }: LoginPag
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          InvoAI — 智能系统综合设计课程项目
+          InvoAI - Invoice Management System
         </p>
       </div>
     </div>

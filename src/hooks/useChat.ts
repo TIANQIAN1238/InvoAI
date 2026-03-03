@@ -8,7 +8,7 @@ export function useChat(options?: { onStreamDone?: () => void }) {
     {
       id: 'assistant-welcome',
       role: 'assistant',
-      content: '你好！我是发票管理助手，可以帮你：\n\n- **识别发票** — 拖拽或点击 📎 添加发票文件进行OCR识别\n- **查询发票** — 按日期、关键词搜索\n- **统计分析** — 汇总金额、按公司/日期分析\n\n支持 PDF、JPG、PNG 等格式。试试拖拽一张发票到下方输入框吧！',
+      content: 'Hi! I am your invoice assistant. I can help you with:\n\n- **Invoice OCR**: drag a file or use the attachment button\n- **Search**: filter by date and keyword\n- **Analytics**: summarize totals by company/date\n\nSupported formats: PDF, JPG, PNG, BMP, WEBP.',
       timestamp: 0,
     },
   ]);
@@ -18,7 +18,6 @@ export function useChat(options?: { onStreamDone?: () => void }) {
   const isStreamingRef = useRef(isStreaming);
   const onStreamDoneRef = useRef(options?.onStreamDone);
 
-  // 同步 ref
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
@@ -31,7 +30,6 @@ export function useChat(options?: { onStreamDone?: () => void }) {
     onStreamDoneRef.current = options?.onStreamDone;
   }, [options?.onStreamDone]);
 
-  // 组件卸载时中止 SSE 连接
   useEffect(() => {
     return () => {
       if (abortRef.current) {
@@ -70,7 +68,6 @@ export function useChat(options?: { onStreamDone?: () => void }) {
       apiMessages.push({ role: 'system', content: systemContext });
     }
 
-    // 使用 ref 获取最新 messages，避免闭包陈旧问题
     const recentMessages = [...messagesRef.current.slice(-10), userMsg];
     for (const msg of recentMessages) {
       if (msg.role === 'user' || msg.role === 'assistant') {
@@ -105,7 +102,7 @@ export function useChat(options?: { onStreamDone?: () => void }) {
           if (last && last.id === assistantMsg.id) {
             updated[updated.length - 1] = {
               ...last,
-              content: last.content || `出错了: ${err}`,
+              content: last.content || `Error: ${err}`,
             };
           }
           return updated;
@@ -124,7 +121,7 @@ export function useChat(options?: { onStreamDone?: () => void }) {
     setMessages([{
       id: generateId(),
       role: 'assistant',
-      content: '对话已清空，有什么需要帮忙的吗？',
+      content: 'Conversation cleared. What can I help you with next?',
       timestamp: Date.now(),
     }]);
     setIsStreaming(false);

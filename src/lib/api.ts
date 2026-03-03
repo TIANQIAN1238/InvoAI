@@ -1,4 +1,3 @@
-// 后端 API 基础地址
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
 
 function getToken(): string | null {
@@ -23,8 +22,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {}),
   };
+
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const res = await fetch(`${API_BASE}${path}`, {
@@ -34,24 +34,24 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (res.status === 401) {
     clearToken();
-    throw new Error('登录过期，请重新登录');
+    throw new Error('Session expired. Please sign in again.');
   }
 
   let data: unknown;
   try {
     data = await res.json();
   } catch {
-    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
-    throw new Error('响应格式错误');
+    if (!res.ok) throw new Error(`Request failed (${res.status})`);
+    throw new Error('Invalid response format');
   }
 
   if (!res.ok) {
-    throw new Error((data as { error?: string }).error || `请求失败 (${res.status})`);
+    throw new Error((data as { error?: string }).error || `Request failed (${res.status})`);
   }
+
   return data as T;
 }
 
-// Auth
 export async function apiRegister(email: string, password: string) {
   return request<{ token: string; userId: number }>('/api/auth/register', {
     method: 'POST',
@@ -76,7 +76,6 @@ export async function apiGetMe() {
   }>('/api/auth/me');
 }
 
-// Invoices
 export async function apiGetInvoices(params?: {
   search?: string;
   dateFrom?: string;
@@ -132,7 +131,6 @@ export async function apiDeleteInvoice(id: number) {
   });
 }
 
-// AI
 export async function apiRecognizeInvoice(imageBase64: string, model = 'gpt-4o') {
   return request<{ content: string }>('/api/ai/recognize', {
     method: 'POST',
@@ -140,7 +138,6 @@ export async function apiRecognizeInvoice(imageBase64: string, model = 'gpt-4o')
   });
 }
 
-// AI Chat SSE 流
 export function apiChatStream(
   messages: Array<{ role: string; content: string }>,
   model: string,
@@ -155,25 +152,26 @@ export function apiChatStream(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ messages, model }),
     signal: controller.signal,
   }).then(async (res) => {
     if (res.status === 401) {
       clearToken();
-      onError('登录过期，请重新登录');
+      onError('Session expired. Please sign in again.');
       return;
     }
+
     if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: '请求失败' }));
-      onError(data.error || `错误 ${res.status}`);
+      const data = await res.json().catch(() => ({ error: 'Request failed' }));
+      onError(data.error || `Error ${res.status}`);
       return;
     }
 
     const reader = res.body?.getReader();
     if (!reader) {
-      onError('无法读取响应流');
+      onError('Unable to read stream response');
       return;
     }
 
@@ -189,24 +187,24 @@ export function apiChatStream(
       buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6).trim();
-          if (data === '[DONE]') {
-            onDone();
-            return;
-          }
-          try {
-            const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content || '';
-            if (delta) onChunk(delta);
-          } catch {
-            // skip unparseable
-          }
+        if (!line.startsWith('data: ')) continue;
+
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') {
+          onDone();
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.choices?.[0]?.delta?.content || '';
+          if (delta) onChunk(delta);
+        } catch {
+          // Skip malformed chunks.
         }
       }
     }
 
-    // 处理 buffer 中残留数据
     buffer += decoder.decode();
     if (buffer.trim()) {
       const line = buffer.trim();
@@ -217,10 +215,13 @@ export function apiChatStream(
             const parsed = JSON.parse(data);
             const delta = parsed.choices?.[0]?.delta?.content || '';
             if (delta) onChunk(delta);
-          } catch { /* skip */ }
+          } catch {
+            // Skip malformed chunks.
+          }
         }
       }
     }
+
     onDone();
   }).catch((err) => {
     if (err.name !== 'AbortError') {
@@ -231,7 +232,6 @@ export function apiChatStream(
   return controller;
 }
 
-// DB init
 export async function apiInitDb() {
   return request<{ ok: boolean }>('/api/init', { method: 'POST' });
 }

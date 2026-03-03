@@ -29,7 +29,7 @@ export async function execute(sql: string, params?: unknown[]): Promise<mysql.Re
   return result as mysql.ResultSetHeader;
 }
 
-// 初始化数据库表
+// Initialize all required database tables.
 export async function initDatabase(): Promise<void> {
   const p = getPool();
 

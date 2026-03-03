@@ -1,7 +1,7 @@
 [package]
 name = "invoice-manager"
 version = "0.1.0"
-description = "发票管理系统 - 课程设计"
+description = "Invoice Management System - Course Project"
 authors = ["you"]
 license = ""
 repository = ""

@@ -8,13 +8,13 @@ export async function POST(request: Request) {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return error('请输入邮箱和密码');
+      return error('Email and password are required');
     }
 
     const result = await loginUser(email, password);
     return json({ token: result.token, userId: result.id });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : '登录失败';
+    const msg = err instanceof Error ? err.message : 'Login failed';
     return error(msg, 401);
   }
 }

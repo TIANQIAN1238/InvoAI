@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { apiRecognizeInvoice } from './api';
 
-// Tauri 本地文件操作 — 保持不变
+// Tauri local file operations.
 export async function readFileAsBase64(filePath: string): Promise<string> {
   return await invoke<string>('read_file_as_base64', { filePath });
 }
@@ -20,7 +20,7 @@ export async function ensureDir(dirPath: string): Promise<void> {
   await invoke('ensure_dir', { dirPath });
 }
 
-// AI 发票识别 — 通过后端代理
+// Invoice OCR through backend proxy.
 export async function recognizeInvoice(
   imageBase64: string,
   model: string,

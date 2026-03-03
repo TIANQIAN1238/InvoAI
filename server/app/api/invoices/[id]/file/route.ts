@@ -21,7 +21,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const payload = await getUserFromHeader(request);
-  if (!payload) return error('未登录', 401);
+  if (!payload) return error('Unauthorized', 401);
 
   const { id } = await params;
 
@@ -35,7 +35,7 @@ export async function GET(
   );
 
   if (rows.length === 0) {
-    return error('未找到文件内容', 404);
+    return error('Invoice file not found', 404);
   }
 
   const row = rows[0];

@@ -7,23 +7,23 @@ interface InvoiceDetailProps {
 }
 
 const fields: Array<{ key: keyof Invoice; label: string; format?: (v: unknown) => string }> = [
-  { key: 'invoice_type', label: '发票类型' },
-  { key: 'invoice_number', label: '发票号码' },
-  { key: 'invoice_code', label: '发票代码' },
-  { key: 'invoice_date', label: '开票日期', format: v => String(v).slice(0, 10) },
-  { key: 'amount', label: '不含税金额', format: v => formatCurrency(v as number) },
-  { key: 'tax_amount', label: '税额', format: v => formatCurrency(v as number) },
-  { key: 'total_amount', label: '价税合计', format: v => formatCurrency(v as number) },
-  { key: 'seller_name', label: '销售方' },
-  { key: 'buyer_name', label: '购买方' },
-  { key: 'remarks', label: '备注' },
+  { key: 'invoice_type', label: 'Type' },
+  { key: 'invoice_number', label: 'Number' },
+  { key: 'invoice_code', label: 'Code' },
+  { key: 'invoice_date', label: 'Issue Date', format: v => String(v).slice(0, 10) },
+  { key: 'amount', label: 'Amount (excl. tax)', format: v => formatCurrency(v as number) },
+  { key: 'tax_amount', label: 'Tax', format: v => formatCurrency(v as number) },
+  { key: 'total_amount', label: 'Total', format: v => formatCurrency(v as number) },
+  { key: 'seller_name', label: 'Seller' },
+  { key: 'buyer_name', label: 'Buyer' },
+  { key: 'remarks', label: 'Remarks' },
 ];
 
 export function InvoiceDetail({ invoice }: InvoiceDetailProps) {
   return (
     <div className="p-3 bg-card max-h-48 overflow-y-auto">
       <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-        发票信息
+        Invoice Details
       </h3>
       <Separator className="mb-2" />
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">

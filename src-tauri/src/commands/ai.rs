@@ -88,26 +88,26 @@ pub async fn recognize_invoice(
     let client = reqwest::Client::new();
     let url = format!("{}/v1/chat/completions", api_base.trim_end_matches('/'));
 
-    let prompt = r#"你是一个专业的发票识别助手。请仔细分析这张发票图片，提取以下信息并以JSON格式返回：
+    let prompt = r#"You are a professional invoice recognition assistant. Analyze this invoice image carefully and return the extracted data as JSON:
 
 {
-  "invoice_number": "发票号码",
-  "invoice_code": "发票代码（如果有）",
-  "invoice_date": "开票日期，格式YYYY-MM-DD",
-  "amount": "不含税金额（数字）",
-  "tax_amount": "税额（数字）",
-  "total_amount": "价税合计（数字）",
-  "seller_name": "销售方名称",
-  "buyer_name": "购买方名称",
-  "invoice_type": "发票类型（如：增值税普通发票、增值税专用发票等）",
-  "remarks": "备注信息"
+  "invoice_number": "Invoice number",
+  "invoice_code": "Invoice code (if available)",
+  "invoice_date": "Issue date in YYYY-MM-DD format",
+  "amount": "Amount before tax (numeric)",
+  "tax_amount": "Tax amount (numeric)",
+  "total_amount": "Total amount including tax (numeric)",
+  "seller_name": "Seller name",
+  "buyer_name": "Buyer name",
+  "invoice_type": "Invoice type (for example: VAT ordinary invoice, VAT special invoice)",
+  "remarks": "Additional notes"
 }
 
-注意：
-- 金额字段请只返回数字，不要包含货币符号
-- 如果某个字段无法识别，请返回空字符串
-- 日期格式必须是YYYY-MM-DD
-- 只返回JSON，不要有其他文字"#;
+Requirements:
+- Return numbers only for amount fields, without currency symbols.
+- If a field cannot be recognized, return an empty string.
+- Date format must be YYYY-MM-DD.
+- Return JSON only, without extra commentary."#;
 
     let body = serde_json::json!({
         "model": model,

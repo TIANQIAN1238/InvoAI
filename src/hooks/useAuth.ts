@@ -7,7 +7,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(() => hasToken());
   const [error, setError] = useState<string | null>(null);
 
-  // 检查已有 token
+  // Restore session from existing token.
   useEffect(() => {
     if (!hasToken()) return;
 
@@ -41,7 +41,7 @@ export function useAuth() {
       const me = await apiGetMe();
       setUser(me as User);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '登录失败';
+      const msg = err instanceof Error ? err.message : 'Login failed';
       setError(msg);
       throw err;
     }
@@ -55,7 +55,7 @@ export function useAuth() {
       const me = await apiGetMe();
       setUser(me as User);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '注册失败';
+      const msg = err instanceof Error ? err.message : 'Registration failed';
       setError(msg);
       throw err;
     }
@@ -71,7 +71,7 @@ export function useAuth() {
       const me = await apiGetMe();
       setUser(me as User);
     } catch {
-      // ignore
+      // Ignore refresh errors.
     }
   }, []);
 

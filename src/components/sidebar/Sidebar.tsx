@@ -42,7 +42,7 @@ export function Sidebar({
 
   const validateDateRange = (): boolean => {
     if (dateFrom && dateTo && dateFrom > dateTo) {
-      setValidationError('开始日期不能晚于结束日期');
+      setValidationError('Start date cannot be later than end date');
       return false;
     }
     setValidationError(null);
@@ -72,11 +72,11 @@ export function Sidebar({
       <div className="p-3 border-b border-border space-y-2">
         <Button onClick={onUpload} className="w-full" size="sm" disabled={Boolean(uploadProgress)}>
           {uploadProgress ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-          {uploadProgress ? `上传中 ${uploadProgress.processed}/${uploadProgress.total}` : '上传发票'}
+          {uploadProgress ? `Uploading ${uploadProgress.processed}/${uploadProgress.total}` : 'Upload Invoice'}
         </Button>
         {uploadProgress && (
           <div className="text-[11px] text-muted-foreground">
-            正在识别发票，请稍候...
+            Running OCR in background...
           </div>
         )}
       </div>
@@ -94,7 +94,7 @@ export function Sidebar({
                   onClick={onClearError}
                   className="h-5 px-1.5 text-[10px]"
                 >
-                  关闭
+                  Close
                 </Button>
               )}
             </AlertDescription>
@@ -105,7 +105,7 @@ export function Sidebar({
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="搜索发票号、公司、类型、备注..."
+            placeholder="Search number, company, type, remarks..."
             value={searchText}
             onChange={e => setSearchText(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
@@ -132,10 +132,10 @@ export function Sidebar({
 
         <div className="flex gap-2">
           <Button onClick={handleSearch} size="sm" className="flex-1 h-7 text-xs">
-            查询
+            Search
           </Button>
           <Button onClick={handleClear} variant="secondary" size="sm" className="flex-1 h-7 text-xs" disabled={!hasActiveFilters}>
-            清空
+            Reset
           </Button>
         </div>
       </div>
@@ -143,12 +143,12 @@ export function Sidebar({
       <div className="flex-1 min-h-0 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-            加载中...
+            Loading...
           </div>
         ) : invoices.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-sm text-muted-foreground">
-            <p>暂无发票</p>
-            <p className="text-xs mt-1">点击上方按钮上传</p>
+            <p>No invoices yet</p>
+            <p className="text-xs mt-1">Use the upload button above</p>
           </div>
         ) : (
           <InvoiceList

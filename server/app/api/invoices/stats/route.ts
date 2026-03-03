@@ -6,7 +6,7 @@ export async function OPTIONS() { return corsResponse(); }
 
 export async function GET(request: Request) {
   const payload = await getUserFromHeader(request);
-  if (!payload) return error('未登录', 401);
+  if (!payload) return error('Unauthorized', 401);
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search') || '';
@@ -30,10 +30,12 @@ export async function GET(request: Request) {
     const q = `%${escaped}%`;
     values.push(q, q, q, q, q, q, q);
   }
+
   if (dateFrom) {
     conditions.push('invoice_date >= ?');
     values.push(dateFrom);
   }
+
   if (dateTo) {
     conditions.push('invoice_date <= ?');
     values.push(dateTo);

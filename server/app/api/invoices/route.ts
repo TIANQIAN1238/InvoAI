@@ -11,10 +11,10 @@ function decodeBase64(input: string): Buffer {
   return Buffer.from(compact, 'base64');
 }
 
-// 获取发票列表
+// Get invoice list.
 export async function GET(request: Request) {
   const payload = await getUserFromHeader(request);
-  if (!payload) return error('未登录', 401);
+  if (!payload) return error('Unauthorized', 401);
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search') || '';
@@ -65,10 +65,10 @@ export async function GET(request: Request) {
   return json(result);
 }
 
-// 创建发票
+// Create invoice.
 export async function POST(request: Request) {
   const payload = await getUserFromHeader(request);
-  if (!payload) return error('未登录', 401);
+  if (!payload) return error('Unauthorized', 401);
 
   let body: {
     file_path?: string;
@@ -80,14 +80,14 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return error('请求格式错误');
+    return error('Invalid request payload');
   }
 
   const { file_path, file_name, file_data_base64, file_mime } = body;
-  if (!file_path || !file_name) return error('缺少文件信息');
+  if (!file_path || !file_name) return error('Missing file metadata');
 
   if (file_data_base64 && !file_mime) {
-    return error('缺少文件类型');
+    return error('Missing file MIME type');
   }
 
   let fileData: Buffer | null = null;
@@ -95,12 +95,12 @@ export async function POST(request: Request) {
     try {
       fileData = decodeBase64(file_data_base64);
     } catch {
-      return error('文件数据格式错误');
+      return error('Invalid file payload encoding');
     }
 
-    if (fileData.length === 0) return error('文件数据为空');
+    if (fileData.length === 0) return error('File payload is empty');
     if (fileData.length > MAX_UPLOAD_BYTES) {
-      return error('文件过大，请压缩后重试');
+      return error('File is too large. Please compress and try again.');
     }
   }
 
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
 
     return json({ id: result.insertId }, 201);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : '创建发票失败';
+    const msg = err instanceof Error ? err.message : 'Failed to create invoice';
     return error(msg, 500);
   }
 }

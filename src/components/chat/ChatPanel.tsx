@@ -65,14 +65,14 @@ export function ChatPanel({
       <div className="h-10 flex items-center justify-between px-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2">
           <Bot size={16} className="text-primary" />
-          <span className="text-sm font-medium">AI 助手</span>
+          <span className="text-sm font-medium">AI Assistant</span>
         </div>
         <div className="flex items-center gap-0.5">
           <Button
             variant="ghost"
             size="icon-xs"
             onClick={onClearChat}
-            title="清空对话"
+            title="Clear conversation"
           >
             <Trash2 size={14} />
           </Button>
@@ -80,7 +80,7 @@ export function ChatPanel({
             variant="ghost"
             size="icon-xs"
             onClick={() => setShowSettings(!showSettings)}
-            title="设置"
+            title="Settings"
           >
             <Settings size={14} />
           </Button>
@@ -90,17 +90,17 @@ export function ChatPanel({
       {showSettings && (
         <div className="border-b border-border p-3 bg-muted/50 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">模型设置</span>
+            <span className="text-xs font-semibold text-muted-foreground">Model Settings</span>
             <Button variant="ghost" size="icon-xs" onClick={() => setShowSettings(false)}>
               <X size={14} />
             </Button>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">对话模型</Label>
+            <Label className="text-xs">Chat Model</Label>
             <Select value={settings.model} onValueChange={(value) => onUpdateSettings({ model: value })}>
               <SelectTrigger size="sm" className="w-full text-xs">
-                <SelectValue placeholder="选择模型" />
+                <SelectValue placeholder="Select model" />
               </SelectTrigger>
               <SelectContent>
                 {CHAT_MODELS.map(model => (
@@ -111,10 +111,10 @@ export function ChatPanel({
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">视觉模型</Label>
+            <Label className="text-xs">Vision Model</Label>
             <Select value={settings.visionModel} onValueChange={(value) => onUpdateSettings({ visionModel: value })}>
               <SelectTrigger size="sm" className="w-full text-xs">
-                <SelectValue placeholder="选择模型" />
+                <SelectValue placeholder="Select model" />
               </SelectTrigger>
               <SelectContent>
                 {VISION_MODELS.map(model => (

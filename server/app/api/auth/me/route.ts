@@ -5,10 +5,10 @@ export async function OPTIONS() { return corsResponse(); }
 
 export async function GET(request: Request) {
   const payload = await getUserFromHeader(request);
-  if (!payload) return error('未登录', 401);
+  if (!payload) return error('Unauthorized', 401);
 
   const user = await getUserInfo(payload.userId);
-  if (!user) return error('用户不存在', 404);
+  if (!user) return error('User not found', 404);
 
   return json({
     id: user.id,
