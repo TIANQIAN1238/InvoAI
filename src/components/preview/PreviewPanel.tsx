@@ -8,40 +8,15 @@ import { Separator } from '@/components/ui/separator';
 
 interface PreviewPanelProps {
   invoice: Invoice | null;
-  localFile?: { path: string; name: string } | null;
 }
 
-export function PreviewPanel({ invoice, localFile }: PreviewPanelProps) {
-  // 优先展示本地文件（从文件树选中的）
-  if (localFile) {
-    const isImage = isImageFile(localFile.name);
-    const isPdf = isPdfFile(localFile.name);
-
-    return (
-      <div className="h-full flex flex-col bg-muted">
-        {/* File name header */}
-        <div className="h-8 flex items-center px-4 border-b border-border bg-card shrink-0">
-          <span className="text-xs text-muted-foreground truncate">{localFile.name}</span>
-        </div>
-        <div className="flex-1 min-h-0 overflow-auto p-4">
-          {isImage && <ImageViewer filePath={localFile.path} />}
-          {isPdf && <PdfViewer filePath={localFile.path} />}
-          {!isImage && !isPdf && (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-              不支持预览该文件格式
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
+export function PreviewPanel({ invoice }: PreviewPanelProps) {
   if (!invoice) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-muted text-muted-foreground">
         <FileImage size={48} strokeWidth={1} />
         <p className="mt-3 text-sm">选择文件查看预览</p>
-        <p className="text-xs mt-1">在左侧文件树或发票列表中选择</p>
+        <p className="text-xs mt-1">在左侧发票列表中选择</p>
       </div>
     );
   }
@@ -57,8 +32,8 @@ export function PreviewPanel({ invoice, localFile }: PreviewPanelProps) {
       </div>
       {/* File preview */}
       <div className="flex-1 min-h-0 overflow-auto p-4">
-        {isImage && <ImageViewer filePath={invoice.file_path} />}
-        {isPdf && <PdfViewer filePath={invoice.file_path} />}
+        {isImage && <ImageViewer filePath={invoice.file_path} invoiceId={invoice.id} />}
+        {isPdf && <PdfViewer filePath={invoice.file_path} invoiceId={invoice.id} />}
         {!isImage && !isPdf && (
           <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
             不支持预览该文件格式

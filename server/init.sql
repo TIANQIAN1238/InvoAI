@@ -36,6 +36,18 @@ CREATE TABLE IF NOT EXISTS invoices (
     INDEX idx_date (invoice_date)
 );
 
+CREATE TABLE IF NOT EXISTS invoice_files (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    invoice_id INT NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    file_data LONGBLOB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_invoice_file (invoice_id),
+    CONSTRAINT fk_invoice_files_invoice
+        FOREIGN KEY (invoice_id) REFERENCES invoices(id)
+        ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS usage_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,

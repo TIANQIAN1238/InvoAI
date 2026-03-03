@@ -1,12 +1,10 @@
-import { useState } from 'react';
-import { Upload, Search, Calendar, FolderOpen, List } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Upload, Search, Calendar, AlertCircle, Loader2 } from 'lucide-react';
 import { InvoiceList } from './InvoiceList';
-import { FileTree } from './FileTree';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Invoice } from '@/types/invoice';
-
-type SidebarTab = 'files' | 'invoices';
 
 interface SidebarProps {
   invoices: Invoice[];
@@ -16,7 +14,9 @@ interface SidebarProps {
   onSearch: (params: { search?: string; dateFrom?: string; dateTo?: string }) => void;
   onDelete: (id: number) => void;
   loading: boolean;
-  onOpenFile: (path: string, name: string) => void;
+  error: string | null;
+  onClearError: () => void;
+  uploadProgress: { processed: number; total: number } | null;
 }
 
 export function Sidebar({
@@ -27,17 +27,33 @@ export function Sidebar({
   onSearch,
   onDelete,
   loading,
-  onOpenFile,
+  error,
+  onClearError,
+  uploadProgress,
 }: SidebarProps) {
-  const [tab, setTab] = useState<SidebarTab>('files');
   const [searchText, setSearchText] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const hasActiveFilters = useMemo(() => {
+    return Boolean(searchText || dateFrom || dateTo);
+  }, [searchText, dateFrom, dateTo]);
+
+  const validateDateRange = (): boolean => {
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      setValidationError('开始日期不能晚于结束日期');
+      return false;
+    }
+    setValidationError(null);
+    return true;
+  };
 
   const handleSearch = () => {
+    if (!validateDateRange()) return;
+
     onSearch({
-      search: searchText || undefined,
+      search: searchText.trim() || undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
     });
@@ -47,121 +63,102 @@ export function Sidebar({
     setSearchText('');
     setDateFrom('');
     setDateTo('');
+    setValidationError(null);
     onSearch({});
-  };
-
-  const handleSelectFile = (path: string, name: string) => {
-    setSelectedFilePath(path);
-    onOpenFile(path, name);
   };
 
   return (
     <div className="h-full flex flex-col bg-card">
-      {/* Tab bar */}
-      <div className="flex border-b border-border shrink-0">
-        <button
-          onClick={() => setTab('files')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
-            tab === 'files'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <FolderOpen size={14} />
-          文件
-        </button>
-        <button
-          onClick={() => setTab('invoices')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
-            tab === 'invoices'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <List size={14} />
-          发票
-        </button>
+      <div className="p-3 border-b border-border space-y-2">
+        <Button onClick={onUpload} className="w-full" size="sm" disabled={Boolean(uploadProgress)}>
+          {uploadProgress ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+          {uploadProgress ? `上传中 ${uploadProgress.processed}/${uploadProgress.total}` : '上传发票'}
+        </Button>
+        {uploadProgress && (
+          <div className="text-[11px] text-muted-foreground">
+            正在识别发票，请稍候...
+          </div>
+        )}
       </div>
 
-      {tab === 'files' ? (
-        /* File tree tab */
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <FileTree onSelectFile={handleSelectFile} selectedPath={selectedFilePath} />
+      <div className="p-3 border-b border-border space-y-2">
+        {(error || validationError) && (
+          <Alert variant="destructive" className="py-2">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <AlertDescription className="text-xs flex items-center justify-between gap-2">
+              <span>{validationError || error}</span>
+              {error && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={onClearError}
+                  className="h-5 px-1.5 text-[10px]"
+                >
+                  关闭
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="relative">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="搜索发票号、公司、类型、备注..."
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            className="pl-8 h-8 text-sm"
+          />
         </div>
-      ) : (
-        /* Invoices tab */
-        <>
-          {/* Upload button */}
-          <div className="p-3 border-b border-border">
-            <Button onClick={onUpload} className="w-full" size="sm">
-              <Upload size={14} />
-              上传发票
-            </Button>
+
+        <div className="flex gap-1.5 items-center">
+          <Calendar size={12} className="text-muted-foreground shrink-0" />
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            className="flex-1 min-w-0 h-7 px-1.5 text-xs"
+          />
+          <span className="text-xs text-muted-foreground">-</span>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+            className="flex-1 min-w-0 h-7 px-1.5 text-xs"
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <Button onClick={handleSearch} size="sm" className="flex-1 h-7 text-xs">
+            查询
+          </Button>
+          <Button onClick={handleClear} variant="secondary" size="sm" className="flex-1 h-7 text-xs" disabled={!hasActiveFilters}>
+            清空
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {loading ? (
+          <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+            加载中...
           </div>
-
-          {/* Search */}
-          <div className="p-3 border-b border-border space-y-2">
-            <div className="relative">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="搜索发票号、公司名..."
-                value={searchText}
-                onChange={e => setSearchText(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                className="pl-8 h-8 text-sm"
-              />
-            </div>
-
-            <div className="flex gap-1.5 items-center">
-              <Calendar size={12} className="text-muted-foreground shrink-0" />
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={e => setDateFrom(e.target.value)}
-                className="flex-1 min-w-0 h-7 px-1.5 text-xs"
-              />
-              <span className="text-xs text-muted-foreground">-</span>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={e => setDateTo(e.target.value)}
-                className="flex-1 min-w-0 h-7 px-1.5 text-xs"
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={handleSearch} size="sm" className="flex-1 h-7 text-xs">
-                查询
-              </Button>
-              <Button onClick={handleClear} variant="secondary" size="sm" className="flex-1 h-7 text-xs">
-                清空
-              </Button>
-            </div>
+        ) : invoices.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-32 text-sm text-muted-foreground">
+            <p>暂无发票</p>
+            <p className="text-xs mt-1">点击上方按钮上传</p>
           </div>
-
-          {/* Invoice list */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {loading ? (
-              <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-                加载中...
-              </div>
-            ) : invoices.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-32 text-sm text-muted-foreground">
-                <p>暂无发票</p>
-                <p className="text-xs mt-1">点击上方按钮上传</p>
-              </div>
-            ) : (
-              <InvoiceList
-                invoices={invoices}
-                selectedInvoice={selectedInvoice}
-                onSelectInvoice={onSelectInvoice}
-                onDelete={onDelete}
-              />
-            )}
-          </div>
-        </>
-      )}
+        ) : (
+          <InvoiceList
+            invoices={invoices}
+            selectedInvoice={selectedInvoice}
+            onSelectInvoice={onSelectInvoice}
+            onDelete={onDelete}
+          />
+        )}
+      </div>
     </div>
   );
 }

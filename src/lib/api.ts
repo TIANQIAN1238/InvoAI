@@ -103,11 +103,20 @@ export async function apiGetInvoiceStats(params?: {
   return request<{ count: number; totalAmount: number }>(`/api/invoices/stats${qs ? `?${qs}` : ''}`);
 }
 
-export async function apiCreateInvoice(data: { file_path: string; file_name: string }) {
+export async function apiCreateInvoice(data: {
+  file_path: string;
+  file_name: string;
+  file_data_base64?: string;
+  file_mime?: string;
+}) {
   return request<{ id: number }>('/api/invoices', {
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+export async function apiGetInvoiceFile(id: number) {
+  return request<{ mimeType: string; base64: string }>(`/api/invoices/${id}/file`);
 }
 
 export async function apiUpdateInvoice(id: number, data: Record<string, unknown>) {

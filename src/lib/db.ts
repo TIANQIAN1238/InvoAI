@@ -5,11 +5,14 @@ import {
   apiCreateInvoice,
   apiUpdateInvoice,
   apiDeleteInvoice,
+  apiGetInvoiceFile,
 } from './api';
 
 export async function insertInvoice(data: {
   file_path: string;
   file_name: string;
+  file_data_base64?: string;
+  file_mime?: string;
 }): Promise<number> {
   const result = await apiCreateInvoice(data);
   return result.id;
@@ -51,4 +54,8 @@ export async function getStats(params?: {
   dateTo?: string;
 }): Promise<{ count: number; totalAmount: number }> {
   return apiGetInvoiceStats(params);
+}
+
+export async function getInvoiceFile(id: number): Promise<{ mimeType: string; base64: string }> {
+  return apiGetInvoiceFile(id);
 }

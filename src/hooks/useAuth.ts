@@ -4,21 +4,33 @@ import { apiRegister, apiLogin, apiGetMe, setToken, clearToken, hasToken } from 
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => hasToken());
   const [error, setError] = useState<string | null>(null);
 
   // 检查已有 token
   useEffect(() => {
-    if (hasToken()) {
-      apiGetMe()
-        .then(data => setUser(data as User))
-        .catch(() => {
-          clearToken();
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+    if (!hasToken()) return;
+
+    let cancelled = false;
+
+    apiGetMe()
+      .then((data) => {
+        if (!cancelled) {
+          setUser(data as User);
+        }
+      })
+      .catch(() => {
+        clearToken();
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
+import { getInvoiceFile } from '@/lib/db';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -11,35 +12,96 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 interface PdfViewerProps {
   filePath: string;
+  invoiceId: number;
 }
 
 function toViewableUrl(filePath: string): string {
+  if (filePath.startsWith('data:')) return filePath;
   if (filePath.startsWith('web:')) return '';
+
   try {
     const tauri = (window as unknown as { __TAURI_INTERNALS__: { convertFileSrc: (path: string) => string } }).__TAURI_INTERNALS__;
     if (tauri?.convertFileSrc) return tauri.convertFileSrc(filePath);
-  } catch { /* not in Tauri */ }
+  } catch {
+    // not in Tauri
+  }
+
   return filePath;
 }
 
-export function PdfViewer({ filePath }: PdfViewerProps) {
+function toDataUrl(mimeType: string, base64: string): string {
+  return `data:${mimeType};base64,${base64}`;
+}
+
+export function PdfViewer({ filePath, invoiceId }: PdfViewerProps) {
   const [numPages, setNumPages] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
+  const [fileUrl, setFileUrl] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const fileUrl = toViewableUrl(filePath);
+  useEffect(() => {
+    let cancelled = false;
 
-  if (!fileUrl) {
+    async function resolveAsset() {
+      setLoading(true);
+      setLoadError(null);
+
+      const directUrl = toViewableUrl(filePath);
+      if (directUrl) {
+        if (!cancelled) {
+          setFileUrl(directUrl);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const remoteFile = await getInvoiceFile(invoiceId);
+        if (!cancelled) {
+          setFileUrl(toDataUrl(remoteFile.mimeType, remoteFile.base64));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : 'PDF 加载失败';
+          setLoadError(msg);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    setPageNumber(1);
+    setNumPages(0);
+    void resolveAsset();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filePath, invoiceId]);
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center text-muted-foreground text-sm gap-2">
+        <Loader2 size={16} className="animate-spin" />
+        加载 PDF 中...
+      </div>
+    );
+  }
+
+  if (!fileUrl || loadError) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-        Web 模式暂不支持 PDF 预览
+        {loadError || 'PDF 预览不可用'}
       </div>
     );
   }
 
   return (
     <div className="h-full flex flex-col">
-      {/* Toolbar */}
       <div className="flex items-center gap-2 mb-2">
         <button
           onClick={() => setPageNumber(p => Math.max(1, p - 1))}
@@ -49,7 +111,7 @@ export function PdfViewer({ filePath }: PdfViewerProps) {
           <ChevronLeft size={16} />
         </button>
         <span className="text-xs text-gray-500">
-          {pageNumber} / {numPages}
+          {pageNumber} / {numPages || '-'}
         </span>
         <button
           onClick={() => setPageNumber(p => Math.min(numPages, p + 1))}
@@ -76,11 +138,10 @@ export function PdfViewer({ filePath }: PdfViewerProps) {
         </button>
       </div>
 
-      {/* PDF */}
       <div className="flex-1 overflow-auto bg-gray-100 rounded-lg flex justify-center">
         <Document
           file={fileUrl}
-          onLoadSuccess={({ numPages: n }) => setNumPages(n)}
+          onLoadSuccess={({ numPages: pages }) => setNumPages(pages)}
           loading={<div className="p-8 text-sm text-gray-400">加载PDF中...</div>}
           error={<div className="p-8 text-sm text-red-400">PDF加载失败</div>}
         >

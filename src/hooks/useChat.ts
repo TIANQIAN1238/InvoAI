@@ -6,10 +6,10 @@ import { generateId } from '@/lib/utils';
 export function useChat(options?: { onStreamDone?: () => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      id: generateId(),
+      id: 'assistant-welcome',
       role: 'assistant',
-      content: '你好！我是发票管理助手，可以帮你：\n\n- **识别发票** — 上传发票自动提取信息\n- **查询发票** — 按日期、关键词搜索\n- **统计分析** — 汇总金额、张数等\n\n有什么需要帮忙的吗？',
-      timestamp: Date.now(),
+      content: '你好！我是发票管理助手，可以帮你：\n\n- **识别发票** — 拖拽或点击 📎 添加发票文件进行OCR识别\n- **查询发票** — 按日期、关键词搜索\n- **统计分析** — 汇总金额、按公司/日期分析\n\n支持 PDF、JPG、PNG 等格式。试试拖拽一张发票到下方输入框吧！',
+      timestamp: 0,
     },
   ]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -130,10 +130,35 @@ export function useChat(options?: { onStreamDone?: () => void }) {
     setIsStreaming(false);
   }, []);
 
+  const addMessage = useCallback((role: 'user' | 'assistant' | 'system', content: string) => {
+    setMessages(prev => [...prev, {
+      id: generateId(),
+      role,
+      content,
+      timestamp: Date.now(),
+    }]);
+  }, []);
+
+  const updateLastAssistant = useCallback((content: string) => {
+    setMessages(prev => {
+      const updated = [...prev];
+      for (let i = updated.length - 1; i >= 0; i--) {
+        if (updated[i].role === 'assistant') {
+          updated[i] = { ...updated[i], content };
+          break;
+        }
+      }
+      return updated;
+    });
+  }, []);
+
   return {
     messages,
     isStreaming,
+    setIsStreaming,
     sendMessage,
     clearMessages,
+    addMessage,
+    updateLastAssistant,
   };
 }

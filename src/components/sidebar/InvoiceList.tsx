@@ -1,4 +1,4 @@
-import { FileText, Trash2, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, Trash2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import type { Invoice } from '@/types/invoice';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -12,10 +12,15 @@ interface InvoiceListProps {
 }
 
 const statusConfig = {
-  pending: { icon: Clock, variant: 'outline' as const, label: '待识别' },
-  recognized: { icon: CheckCircle, variant: 'secondary' as const, label: '已识别' },
-  failed: { icon: AlertCircle, variant: 'destructive' as const, label: '识别失败' },
+  pending: { icon: Loader2, variant: 'outline' as const, label: '识别中', animate: true },
+  recognized: { icon: CheckCircle, variant: 'secondary' as const, label: '已识别', animate: false },
+  failed: { icon: AlertCircle, variant: 'destructive' as const, label: '识别失败', animate: false },
 } as const;
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return '';
+  return dateStr.slice(0, 10);
+}
 
 export function InvoiceList({ invoices, selectedInvoice, onSelectInvoice, onDelete }: InvoiceListProps) {
   return (
@@ -41,21 +46,31 @@ export function InvoiceList({ invoices, selectedInvoice, onSelectInvoice, onDele
                   <span className="text-sm font-medium truncate">
                     {invoice.seller_name || invoice.file_name}
                   </span>
-                  <Badge variant={status.variant} className="h-4 text-[10px] px-1.5 gap-0.5">
-                    <StatusIcon size={10} />
+                  <Badge variant={status.variant} className="h-4 text-[10px] px-1.5 gap-0.5 shrink-0">
+                    <StatusIcon size={10} className={status.animate ? 'animate-spin' : ''} />
                     {status.label}
                   </Badge>
                 </div>
+                {invoice.status === 'pending' && (
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    正在使用 AI 识别发票内容...
+                  </div>
+                )}
                 {invoice.status === 'recognized' && (
                   <>
                     <div className="text-xs text-muted-foreground mt-0.5 truncate">
                       {invoice.invoice_number && `No.${invoice.invoice_number}`}
-                      {invoice.invoice_date && ` · ${invoice.invoice_date}`}
+                      {invoice.invoice_date && ` · ${formatDate(invoice.invoice_date)}`}
                     </div>
                     <div className="text-xs font-medium text-primary mt-0.5">
                       {formatCurrency(invoice.total_amount)}
                     </div>
                   </>
+                )}
+                {invoice.status === 'failed' && (
+                  <div className="text-xs text-destructive mt-0.5">
+                    识别失败，请重试
+                  </div>
                 )}
               </div>
               <Button
@@ -63,7 +78,9 @@ export function InvoiceList({ invoices, selectedInvoice, onSelectInvoice, onDele
                 size="icon-xs"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDelete(invoice.id);
+                  if (window.confirm(`确定删除发票「${invoice.file_name}」吗？`)) {
+                    onDelete(invoice.id);
+                  }
                 }}
                 className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
               >

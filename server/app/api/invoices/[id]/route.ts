@@ -20,7 +20,12 @@ export async function GET(
   );
 
   if (rows.length === 0) return error('发票不存在', 404);
-  return json(rows[0]);
+  return json({
+    ...rows[0],
+    amount: Number(rows[0].amount ?? 0),
+    tax_amount: Number(rows[0].tax_amount ?? 0),
+    total_amount: Number(rows[0].total_amount ?? 0),
+  });
 }
 
 // 更新发票（OCR 结果等）
@@ -73,6 +78,12 @@ export async function DELETE(
   if (!payload) return error('未登录', 401);
 
   const { id } = await params;
+  await execute(
+    `DELETE f FROM invoice_files f
+     INNER JOIN invoices i ON i.id = f.invoice_id
+     WHERE f.invoice_id = ? AND i.user_id = ?`,
+    [id, payload.userId]
+  );
   await execute('DELETE FROM invoices WHERE id = ? AND user_id = ?', [id, payload.userId]);
   return json({ ok: true });
 }

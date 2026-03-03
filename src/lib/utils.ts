@@ -6,7 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number): string {
-  return `¥${amount.toFixed(2)}`;
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return '¥0.00';
+  return `¥${value.toFixed(2)}`;
 }
 
 export function generateId(): string {

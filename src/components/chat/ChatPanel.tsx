@@ -1,21 +1,40 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Bot, Settings, Trash2, X } from 'lucide-react';
 import { ChatInput } from './ChatInput';
+import type { AttachedFile } from './ChatInput';
 import { MessageList } from './MessageList';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { ChatMessage, AppSettings } from '@/types/invoice';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
   isStreaming: boolean;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, attachment?: AttachedFile) => void;
   onClearChat: () => void;
   settings: AppSettings;
   onUpdateSettings: (settings: Partial<AppSettings>) => void;
 }
+
+const CHAT_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-3-flash-preview',
+  'gemini-3-pro-preview',
+  'gpt-4o-mini',
+  'gpt-4o',
+];
+
+const VISION_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-3-flash-preview',
+  'gemini-3-pro-preview',
+  'gpt-4o-mini',
+  'gpt-4o',
+];
 
 export function ChatPanel({
   messages,
@@ -43,7 +62,6 @@ export function ChatPanel({
 
   return (
     <div className="h-full flex flex-col bg-card">
-      {/* Header */}
       <div className="h-10 flex items-center justify-between px-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2">
           <Bot size={16} className="text-primary" />
@@ -69,7 +87,6 @@ export function ChatPanel({
         </div>
       </div>
 
-      {/* Settings panel */}
       {showSettings && (
         <div className="border-b border-border p-3 bg-muted/50 space-y-2">
           <div className="flex items-center justify-between">
@@ -78,37 +95,43 @@ export function ChatPanel({
               <X size={14} />
             </Button>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <Label className="text-xs">对话模型</Label>
-              <Input
-                type="text"
-                value={settings.model}
-                onChange={e => onUpdateSettings({ model: e.target.value })}
-                className="h-7 text-xs"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">视觉模型</Label>
-              <Input
-                type="text"
-                value={settings.visionModel}
-                onChange={e => onUpdateSettings({ visionModel: e.target.value })}
-                className="h-7 text-xs"
-              />
-            </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">对话模型</Label>
+            <Select value={settings.model} onValueChange={(value) => onUpdateSettings({ model: value })}>
+              <SelectTrigger size="sm" className="w-full text-xs">
+                <SelectValue placeholder="选择模型" />
+              </SelectTrigger>
+              <SelectContent>
+                {CHAT_MODELS.map(model => (
+                  <SelectItem key={model} value={model}>{model}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">视觉模型</Label>
+            <Select value={settings.visionModel} onValueChange={(value) => onUpdateSettings({ visionModel: value })}>
+              <SelectTrigger size="sm" className="w-full text-xs">
+                <SelectValue placeholder="选择模型" />
+              </SelectTrigger>
+              <SelectContent>
+                {VISION_MODELS.map(model => (
+                  <SelectItem key={model} value={model}>{model}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       )}
 
-      {/* Messages */}
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto" onScroll={handleScroll}>
         <MessageList messages={messages} isStreaming={isStreaming} />
       </div>
 
       <Separator />
 
-      {/* Input */}
       <ChatInput onSend={onSendMessage} disabled={isStreaming} />
     </div>
   );

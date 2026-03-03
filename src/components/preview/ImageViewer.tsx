@@ -1,37 +1,96 @@
-import { useState } from 'react';
-import { ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ZoomIn, ZoomOut, RotateCw, Loader2 } from 'lucide-react';
+import { getInvoiceFile } from '@/lib/db';
 
 interface ImageViewerProps {
   filePath: string;
+  invoiceId: number;
 }
 
 function toViewableUrl(filePath: string): string {
+  if (filePath.startsWith('data:')) return filePath;
   if (filePath.startsWith('web:')) return '';
+
   try {
-    // Tauri 环境：convertFileSrc 通过 __TAURI_INTERNALS__ 访问
     const tauri = (window as unknown as { __TAURI_INTERNALS__: { convertFileSrc: (path: string) => string } }).__TAURI_INTERNALS__;
     if (tauri?.convertFileSrc) return tauri.convertFileSrc(filePath);
-  } catch { /* not in Tauri */ }
+  } catch {
+    // not in Tauri
+  }
+
   return filePath;
 }
 
-export function ImageViewer({ filePath }: ImageViewerProps) {
+function toDataUrl(mimeType: string, base64: string): string {
+  return `data:${mimeType};base64,${base64}`;
+}
+
+export function ImageViewer({ filePath, invoiceId }: ImageViewerProps) {
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [assetUrl, setAssetUrl] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const assetUrl = toViewableUrl(filePath);
+  useEffect(() => {
+    let cancelled = false;
 
-  if (!assetUrl) {
+    async function resolveAsset() {
+      setLoading(true);
+      setLoadError(null);
+
+      const directUrl = toViewableUrl(filePath);
+      if (directUrl) {
+        if (!cancelled) {
+          setAssetUrl(directUrl);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const remoteFile = await getInvoiceFile(invoiceId);
+        if (!cancelled) {
+          setAssetUrl(toDataUrl(remoteFile.mimeType, remoteFile.base64));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : '图片加载失败';
+          setLoadError(msg);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void resolveAsset();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filePath, invoiceId]);
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center text-muted-foreground text-sm gap-2">
+        <Loader2 size={16} className="animate-spin" />
+        加载图片中...
+      </div>
+    );
+  }
+
+  if (!assetUrl || loadError) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-        Web 模式暂不支持图片预览
+        {loadError || '图片预览不可用'}
       </div>
     );
   }
 
   return (
     <div className="h-full flex flex-col">
-      {/* Toolbar */}
       <div className="flex items-center gap-1 mb-2">
         <button
           onClick={() => setScale(s => Math.max(0.25, s - 0.25))}
@@ -65,7 +124,6 @@ export function ImageViewer({ filePath }: ImageViewerProps) {
         </button>
       </div>
 
-      {/* Image */}
       <div className="flex-1 overflow-auto flex items-center justify-center bg-gray-100 rounded-lg">
         <img
           src={assetUrl}

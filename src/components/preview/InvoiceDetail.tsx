@@ -10,7 +10,7 @@ const fields: Array<{ key: keyof Invoice; label: string; format?: (v: unknown) =
   { key: 'invoice_type', label: '发票类型' },
   { key: 'invoice_number', label: '发票号码' },
   { key: 'invoice_code', label: '发票代码' },
-  { key: 'invoice_date', label: '开票日期' },
+  { key: 'invoice_date', label: '开票日期', format: v => String(v).slice(0, 10) },
   { key: 'amount', label: '不含税金额', format: v => formatCurrency(v as number) },
   { key: 'tax_amount', label: '税额', format: v => formatCurrency(v as number) },
   { key: 'total_amount', label: '价税合计', format: v => formatCurrency(v as number) },

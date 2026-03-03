@@ -17,10 +17,18 @@ export async function GET(request: Request) {
   const values: unknown[] = [payload.userId];
 
   if (search) {
-    conditions.push('(invoice_number LIKE ? OR seller_name LIKE ? OR buyer_name LIKE ? OR invoice_code LIKE ?)');
+    conditions.push(
+      `(invoice_number LIKE ? ESCAPE '\\\\'
+      OR seller_name LIKE ? ESCAPE '\\\\'
+      OR buyer_name LIKE ? ESCAPE '\\\\'
+      OR invoice_code LIKE ? ESCAPE '\\\\'
+      OR invoice_type LIKE ? ESCAPE '\\\\'
+      OR IFNULL(remarks, '') LIKE ? ESCAPE '\\\\'
+      OR file_name LIKE ? ESCAPE '\\\\')`
+    );
     const escaped = search.replace(/[%_\\]/g, '\\$&');
     const q = `%${escaped}%`;
-    values.push(q, q, q, q);
+    values.push(q, q, q, q, q, q, q);
   }
   if (dateFrom) {
     conditions.push('invoice_date >= ?');

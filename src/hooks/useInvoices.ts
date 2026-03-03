@@ -1,16 +1,47 @@
-import { useState, useCallback, useEffect } from 'react';
-import type { Invoice } from '@/types/invoice';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import type { Invoice, InvoiceOcrResult } from '@/types/invoice';
 import * as db from '@/lib/db';
 import { recognizeInvoice } from '@/lib/ai';
-import type { InvoiceOcrResult } from '@/types/invoice';
 import { hasToken } from '@/lib/api';
 
-// 检测是否在 Tauri 环境
+interface SearchParams {
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+interface UploadSettings {
+  visionModel: string;
+  workspaceDir: string;
+}
+
+interface ImportInvoiceInput {
+  filePath: string;
+  fileName: string;
+  base64: string;
+  visionModel: string;
+  mimeType?: string;
+  persistFileData?: boolean;
+}
+
+interface OcrNormalizedResult {
+  invoice_number: string;
+  invoice_code: string;
+  invoice_date: string | null;
+  amount: number;
+  tax_amount: number;
+  total_amount: number;
+  seller_name: string;
+  buyer_name: string;
+  invoice_type: string;
+  remarks: string;
+  raw_ocr_result: string;
+}
+
 function isTauri(): boolean {
   return !!(window as unknown as { __TAURI_INTERNALS__: unknown }).__TAURI_INTERNALS__;
 }
 
-// Web 方式：用 <input type="file"> 选择文件
 function pickFilesWeb(): Promise<File[]> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
@@ -21,66 +52,213 @@ function pickFilesWeb(): Promise<File[]> {
       const files = input.files ? Array.from(input.files) : [];
       resolve(files);
     };
-    // 用户取消时也 resolve 空数组
     input.addEventListener('cancel', () => resolve([]));
     input.click();
   });
 }
 
-// Web 方式：读取 File 为 base64
 function readFileAsBase64Web(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      // 去掉 "data:xxx;base64," 前缀
-      const base64 = result.split(',')[1] || result;
-      resolve(base64);
+      resolve(result.split(',')[1] || result);
     };
     reader.onerror = () => reject(new Error('文件读取失败'));
     reader.readAsDataURL(file);
   });
 }
 
+function inferMimeTypeFromName(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'pdf':
+      return 'application/pdf';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'bmp':
+      return 'image/bmp';
+    case 'webp':
+      return 'image/webp';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+function parseOcrJson(content: string): InvoiceOcrResult {
+  let cleanJson = content.trim();
+  if (cleanJson.startsWith('```')) {
+    cleanJson = cleanJson.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+  }
+  return JSON.parse(cleanJson) as InvoiceOcrResult;
+}
+
+function normalizeAmount(value: string | number | undefined): number {
+  if (value == null) return 0;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  const cleaned = value.replace(/[\s,，¥￥元]/g, '');
+  const matched = cleaned.match(/-?\d+(?:\.\d+)?/);
+  if (!matched) return 0;
+  const parsed = Number(matched[0]);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeDate(value: string | undefined): string | null {
+  if (!value) return null;
+  const compact = value
+    .trim()
+    .replace(/[年./]/g, '-')
+    .replace(/月/g, '-')
+    .replace(/[日号]/g, '')
+    .replace(/\s+/g, '');
+
+  const matched = compact.match(/(\d{4})-?(\d{1,2})-?(\d{1,2})/);
+  if (!matched) return null;
+
+  const year = Number(matched[1]);
+  const month = Number(matched[2]);
+  const day = Number(matched[3]);
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return null;
+  }
+  if (month < 1 || month > 12) return null;
+
+  const maxDay = new Date(year, month, 0).getDate();
+  if (day < 1 || day > maxDay) return null;
+
+  const mm = String(month).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+  return `${year}-${mm}-${dd}`;
+}
+
+function normalizeText(value: string | null | undefined): string {
+  return (value ?? '').trim();
+}
+
+function normalizeOcrResult(raw: InvoiceOcrResult, rawOcrText: string): OcrNormalizedResult {
+  return {
+    invoice_number: normalizeText(raw.invoice_number),
+    invoice_code: normalizeText(raw.invoice_code),
+    invoice_date: normalizeDate(raw.invoice_date),
+    amount: normalizeAmount(raw.amount),
+    tax_amount: normalizeAmount(raw.tax_amount),
+    total_amount: normalizeAmount(raw.total_amount),
+    seller_name: normalizeText(raw.seller_name),
+    buyer_name: normalizeText(raw.buyer_name),
+    invoice_type: normalizeText(raw.invoice_type),
+    remarks: normalizeText(raw.remarks),
+    raw_ocr_result: rawOcrText,
+  };
+}
+
 export function useInvoices() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({ count: 0, totalAmount: 0 });
-  const [searchParams, setSearchParams] = useState<{
-    search?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }>({});
+  const [uploadProgress, setUploadProgress] = useState<{ processed: number; total: number } | null>(null);
+  const searchParamsRef = useRef<SearchParams>({});
 
-  const loadInvoices = useCallback(async (params?: {
-    search?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }) => {
+  const loadInvoices = useCallback(async (params?: SearchParams) => {
     if (!hasToken()) return;
+
     try {
       setLoading(true);
-      const p = params ?? searchParams;
-      const [rows, s] = await Promise.all([
-        db.getInvoices(p),
-        db.getStats(p),
+      const nextParams = params ?? searchParamsRef.current;
+      const [rows, nextStats] = await Promise.all([
+        db.getInvoices(nextParams),
+        db.getStats(nextParams),
       ]);
+
       setInvoices(rows);
-      setStats(s);
+      setStats(nextStats);
+      setSelectedInvoice((previous) => {
+        if (rows.length === 0) return null;
+        if (!previous) return rows[0];
+        return rows.find((item) => item.id === previous.id) ?? rows[0];
+      });
     } catch (err) {
       console.error('Failed to load invoices:', err);
+      const msg = err instanceof Error ? err.message : '加载发票失败';
+      setError(msg);
     } finally {
       setLoading(false);
     }
-  }, [searchParams]);
+  }, []);
 
-  const uploadInvoice = useCallback(async (settings: {
-    visionModel: string;
-  }) => {
+  const processOcr = useCallback(async (
+    id: number,
+    base64: string,
+    visionModel: string,
+  ): Promise<OcrNormalizedResult | null> => {
+    try {
+      const ocrResultStr = await recognizeInvoice(base64, visionModel);
+      const parsed = parseOcrJson(ocrResultStr);
+      const normalized = normalizeOcrResult(parsed, ocrResultStr);
+
+      await db.updateInvoiceOcr(id, {
+        invoice_number: normalized.invoice_number,
+        invoice_code: normalized.invoice_code,
+        invoice_date: normalized.invoice_date,
+        amount: normalized.amount,
+        tax_amount: normalized.tax_amount,
+        total_amount: normalized.total_amount,
+        seller_name: normalized.seller_name,
+        buyer_name: normalized.buyer_name,
+        invoice_type: normalized.invoice_type,
+        remarks: normalized.remarks,
+        raw_ocr_result: normalized.raw_ocr_result,
+        status: 'recognized',
+      });
+
+      return normalized;
+    } catch (ocrErr) {
+      console.error('OCR failed:', ocrErr);
+      try {
+        await db.updateInvoiceOcr(id, { status: 'failed' });
+      } catch (updateErr) {
+        console.error('Failed to update invoice status:', updateErr);
+      }
+      return null;
+    }
+  }, []);
+
+  const importInvoice = useCallback(async ({
+    filePath,
+    fileName,
+    base64,
+    visionModel,
+    mimeType,
+    persistFileData,
+  }: ImportInvoiceInput): Promise<{ id: number; ocr: OcrNormalizedResult | null }> => {
+    const id = await db.insertInvoice({
+      file_path: filePath,
+      file_name: fileName,
+      ...(persistFileData ? {
+        file_data_base64: base64,
+        file_mime: mimeType || inferMimeTypeFromName(fileName),
+      } : {}),
+    });
+
+    await loadInvoices();
+    const ocr = await processOcr(id, base64, visionModel);
+    await loadInvoices();
+
+    return { id, ocr };
+  }, [loadInvoices, processOcr]);
+
+  const uploadInvoice = useCallback(async (settings: UploadSettings) => {
+    setError(null);
+
     try {
       if (isTauri()) {
-        // Tauri 环境：用原生对话框
         const { open } = await import('@tauri-apps/plugin-dialog');
         const { invoke } = await import('@tauri-apps/api/core');
 
@@ -94,119 +272,100 @@ export function useInvoices() {
 
         if (!files || (Array.isArray(files) && files.length === 0)) return;
 
-        const filePaths: string[] = Array.isArray(files)
-          ? files.map(f => typeof f === 'string' ? f : (f as { path: string }).path)
+        const filePaths = Array.isArray(files)
+          ? files.map(item => typeof item === 'string' ? item : (item as { path: string }).path)
           : [typeof files === 'string' ? files : (files as { path: string }).path];
 
-        const workspaceDir = '/tmp/invoice-workspace';
-        await invoke('ensure_dir', { dirPath: workspaceDir });
+        await invoke('ensure_dir', { dirPath: settings.workspaceDir });
 
-        for (const path of filePaths) {
+        setUploadProgress({ processed: 0, total: filePaths.length });
+        for (let i = 0; i < filePaths.length; i++) {
+          const path = filePaths[i];
           const fileName = path.split('/').pop() || path.split('\\').pop() || 'unknown';
-          const destPath = await invoke<string>('copy_file_to_workspace', { sourcePath: path, workspaceDir });
+          const copiedPath = await invoke<string>('copy_file_to_workspace', {
+            sourcePath: path,
+            workspaceDir: settings.workspaceDir,
+          });
+          const base64 = await invoke<string>('read_file_as_base64', { filePath: copiedPath });
 
-          const id = await db.insertInvoice({ file_path: destPath, file_name: fileName });
+          await importInvoice({
+            filePath: copiedPath,
+            fileName,
+            base64,
+            visionModel: settings.visionModel,
+          });
 
-          try {
-            const base64 = await invoke<string>('read_file_as_base64', { filePath: destPath });
-            const ocrResultStr = await recognizeInvoice(base64, settings.visionModel);
-            let cleanJson = ocrResultStr.trim();
-            if (cleanJson.startsWith('```')) {
-              cleanJson = cleanJson.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-            }
-            const ocrResult: InvoiceOcrResult = JSON.parse(cleanJson);
-
-            await db.updateInvoiceOcr(id, {
-              invoice_number: ocrResult.invoice_number || '',
-              invoice_code: ocrResult.invoice_code || '',
-              invoice_date: ocrResult.invoice_date || null,
-              amount: parseFloat(ocrResult.amount) || 0,
-              tax_amount: parseFloat(ocrResult.tax_amount) || 0,
-              total_amount: parseFloat(ocrResult.total_amount) || 0,
-              seller_name: ocrResult.seller_name || '',
-              buyer_name: ocrResult.buyer_name || '',
-              invoice_type: ocrResult.invoice_type || '',
-              remarks: ocrResult.remarks || '',
-              raw_ocr_result: ocrResultStr,
-              status: 'recognized',
-            });
-          } catch (ocrErr) {
-            console.error('OCR failed:', ocrErr);
-            await db.updateInvoiceOcr(id, { status: 'failed' });
-          }
+          setUploadProgress({ processed: i + 1, total: filePaths.length });
         }
       } else {
-        // Web 环境：用 HTML input[type=file]
         const files = await pickFilesWeb();
         if (files.length === 0) return;
 
-        for (const file of files) {
-          const fileName = file.name;
+        setUploadProgress({ processed: 0, total: files.length });
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const base64 = await readFileAsBase64Web(file);
 
-          const id = await db.insertInvoice({ file_path: `web:${fileName}`, file_name: fileName });
+          await importInvoice({
+            filePath: `web:${file.name}`,
+            fileName: file.name,
+            base64,
+            mimeType: file.type || inferMimeTypeFromName(file.name),
+            visionModel: settings.visionModel,
+            persistFileData: true,
+          });
 
-          try {
-            const base64 = await readFileAsBase64Web(file);
-            const ocrResultStr = await recognizeInvoice(base64, settings.visionModel);
-            let cleanJson = ocrResultStr.trim();
-            if (cleanJson.startsWith('```')) {
-              cleanJson = cleanJson.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-            }
-            const ocrResult: InvoiceOcrResult = JSON.parse(cleanJson);
-
-            await db.updateInvoiceOcr(id, {
-              invoice_number: ocrResult.invoice_number || '',
-              invoice_code: ocrResult.invoice_code || '',
-              invoice_date: ocrResult.invoice_date || null,
-              amount: parseFloat(ocrResult.amount) || 0,
-              tax_amount: parseFloat(ocrResult.tax_amount) || 0,
-              total_amount: parseFloat(ocrResult.total_amount) || 0,
-              seller_name: ocrResult.seller_name || '',
-              buyer_name: ocrResult.buyer_name || '',
-              invoice_type: ocrResult.invoice_type || '',
-              remarks: ocrResult.remarks || '',
-              raw_ocr_result: ocrResultStr,
-              status: 'recognized',
-            });
-          } catch (ocrErr) {
-            console.error('OCR failed:', ocrErr);
-            await db.updateInvoiceOcr(id, { status: 'failed' });
-          }
+          setUploadProgress({ processed: i + 1, total: files.length });
         }
       }
-
-      await loadInvoices();
     } catch (err) {
       console.error('Upload failed:', err);
+      const msg = err instanceof Error ? err.message : '上传失败';
+      setError(msg);
+    } finally {
+      setUploadProgress(null);
     }
-  }, [loadInvoices]);
+  }, [importInvoice]);
 
-  const search = useCallback(async (params: {
-    search?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }) => {
-    setSearchParams(params);
+  const search = useCallback(async (params: SearchParams) => {
+    searchParamsRef.current = params;
     await loadInvoices(params);
   }, [loadInvoices]);
 
   const removeInvoice = useCallback(async (id: number) => {
-    await db.deleteInvoice(id);
-    if (selectedInvoice?.id === id) setSelectedInvoice(null);
-    await loadInvoices();
+    try {
+      setError(null);
+      await db.deleteInvoice(id);
+      if (selectedInvoice?.id === id) {
+        setSelectedInvoice(null);
+      }
+      await loadInvoices();
+    } catch (err) {
+      console.error('Failed to delete invoice:', err);
+      const msg = err instanceof Error ? err.message : '删除失败';
+      setError(msg);
+    }
   }, [selectedInvoice, loadInvoices]);
 
-  useEffect(() => {
-    loadInvoices();
+  const clearError = useCallback(() => {
+    setError(null);
   }, []);
+
+  useEffect(() => {
+    void loadInvoices();
+  }, [loadInvoices]);
 
   return {
     invoices,
     selectedInvoice,
     setSelectedInvoice,
     loading,
+    error,
+    clearError,
     stats,
+    uploadProgress,
     uploadInvoice,
+    importInvoice,
     search,
     loadInvoices,
     removeInvoice,
