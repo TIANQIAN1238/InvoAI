@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
 import { getInvoiceFile } from '@/lib/db';
@@ -40,6 +40,21 @@ export function PdfViewer({ filePath, invoiceId }: PdfViewerProps) {
   const [fileUrl, setFileUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const fallbackTriedRef = useRef(false);
+
+  async function fallbackToStoredFile() {
+    if (fallbackTriedRef.current) return;
+    fallbackTriedRef.current = true;
+
+    try {
+      const remoteFile = await getInvoiceFile(invoiceId);
+      setFileUrl(toDataUrl(remoteFile.mimeType, remoteFile.base64));
+      setLoadError(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load PDF';
+      setLoadError(msg);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +62,7 @@ export function PdfViewer({ filePath, invoiceId }: PdfViewerProps) {
     async function resolveAsset() {
       setLoading(true);
       setLoadError(null);
+      fallbackTriedRef.current = false;
 
       const directUrl = toViewableUrl(filePath);
       if (directUrl) {
@@ -60,6 +76,7 @@ export function PdfViewer({ filePath, invoiceId }: PdfViewerProps) {
       try {
         const remoteFile = await getInvoiceFile(invoiceId);
         if (!cancelled) {
+          fallbackTriedRef.current = true;
           setFileUrl(toDataUrl(remoteFile.mimeType, remoteFile.base64));
         }
       } catch (err) {
@@ -142,6 +159,9 @@ export function PdfViewer({ filePath, invoiceId }: PdfViewerProps) {
         <Document
           file={fileUrl}
           onLoadSuccess={({ numPages: pages }) => setNumPages(pages)}
+          onLoadError={() => {
+            void fallbackToStoredFile();
+          }}
           loading={<div className="p-8 text-sm text-gray-400">Loading PDF...</div>}
           error={<div className="p-8 text-sm text-red-400">Failed to load PDF</div>}
         >
