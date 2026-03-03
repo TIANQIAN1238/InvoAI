@@ -289,7 +289,9 @@ export function useInvoices() {
             filePath: copiedPath,
             fileName,
             base64,
+            mimeType: inferMimeTypeFromName(fileName),
             visionModel: settings.visionModel,
+            persistFileData: true,
           });
 
           setUploadProgress({ processed: i + 1, total: filePaths.length });
