@@ -1,0 +1,3 @@
+invoice_id,file_path,file_name,status,note
+2,"web:dzfp_26322000001119040276.pdf","dzfp_26322000001119040276_武汉企泥科技有限公司_20260208162937.pdf",SKIPPED,"non-local path"
+30001,"/tmp/invoice-workspace/dzfp_26322000001119040276_武汉企泥科技有限公司_20260208162937_1772465608056.pdf","dzfp_26322000001119040276_武汉企泥科技有限公司_20260208162937.pdf",FAILED,"ENOENT: no such file or directory, open '/tmp/invoice-workspace/dzfp_26322000001119040276_武汉企泥科技有限公司_20260208162937_1772465608056.pdf'"
