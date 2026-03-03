@@ -1,0 +1,6 @@
+sample,mime,size_bytes,recognize_http,recognized_json,invoice_id,status,note
+AmazonWebServices.png,image/png,169280,200,true,90001,recognized,""
+SammyMaystoneLinesTest.png,image/png,84137,200,true,90002,recognized,""
+oyo.png,image/png,256027,200,true,90003,recognized,""
+AmazonWebServices.pdf,application/pdf,154526,200,false,90004,failed,""
+FlipkartInvoice.pdf,application/pdf,44791,502,false,90005,failed,"AI API error 400: {""error"":{""message"":""Invalid image URL: 'messages[0].content[1].image_url.url'. Expected a base64-enco"
