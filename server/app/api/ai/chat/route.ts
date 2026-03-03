@@ -1,5 +1,5 @@
 import { getUserFromHeader } from '@/lib/auth';
-import { checkBalance, checkAndDeductBalance, createChatStream, isAllowedModel } from '@/lib/ai-proxy';
+import { checkBalance, checkAndDeductBalance, createChatStream, createChatCompletion, isAllowedModel } from '@/lib/ai-proxy';
 import { error, corsResponse, corsHeaders } from '@/lib/response';
 
 export async function OPTIONS() { return corsResponse(); }
@@ -30,11 +30,54 @@ export async function POST(request: Request) {
   }
 
   try {
-    const aiResponse = await createChatStream(messages, model);
+    let aiResponse: Response;
+    let fallbackMode = false;
+
+    try {
+      aiResponse = await createChatStream(messages, model);
+    } catch (streamErr) {
+      console.error('Chat stream unavailable, switching to non-stream mode:', streamErr);
+      fallbackMode = true;
+      aiResponse = await createChatCompletion(messages as Array<{ role: string; content: string }>, model);
+    }
 
     if (!aiResponse.ok) {
       const text = await aiResponse.text();
       return error(`AI service error: ${text}`, 502);
+    }
+
+    if (fallbackMode) {
+      const encoder = new TextEncoder();
+      const payload = await aiResponse.json();
+      const content = payload?.choices?.[0]?.message?.content || '';
+      const usage = payload?.usage || { prompt_tokens: Math.ceil(JSON.stringify(messages).length / 4), completion_tokens: Math.ceil(String(content).length / 4) };
+
+      await checkAndDeductBalance(
+        payload.userId,
+        model,
+        usage.prompt_tokens || 0,
+        usage.completion_tokens || 0,
+        'chat'
+      ).catch((deductErr) => {
+        console.error('Fallback chat balance deduction failed:', deductErr);
+      });
+
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`));
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          ...corsHeaders(),
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
     }
 
     const reader = aiResponse.body?.getReader();

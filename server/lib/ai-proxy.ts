@@ -82,6 +82,26 @@ export async function createChatStream(
   });
 }
 
+export async function createChatCompletion(
+  messages: Array<{ role: string; content: string }>,
+  model: string,
+): Promise<Response> {
+  const url = `${AI_API_BASE()}/v1/chat/completions`;
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${AI_API_KEY()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      stream: false,
+      max_tokens: 4096,
+    }),
+  });
+}
+
 function detectMimeType(base64: string): string {
   if (base64.startsWith('JVBERi')) return 'application/pdf';
   if (base64.startsWith('/9j/')) return 'image/jpeg';
